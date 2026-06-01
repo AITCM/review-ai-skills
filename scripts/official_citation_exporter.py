@@ -29,7 +29,7 @@ from typing import Any
 
 
 PUBMED_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-DEFAULT_UA = "top-journal-review-writer/1.0"
+DEFAULT_UA = "review-ai-skills/1.0"
 TITLE_STOPWORDS = {
     "the",
     "and",
@@ -235,7 +235,7 @@ def fetch_pubmed_export(pmid: str, args: argparse.Namespace) -> str:
         "db": "pubmed",
         "id": pmid,
         "retmode": "text",
-        "tool": "top-journal-review-writer",
+        "tool": "review-ai-skills",
     }
     if args.email:
         params_base["email"] = args.email

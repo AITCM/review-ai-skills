@@ -21,7 +21,7 @@ Codex remains the chief editor/PI:
 
 ```text
 User
-  -> Codex with $top-journal-review-writer
+  -> Codex with $review-ai-skills
      -> custom review MCP tools/resources
         -> PubMed/Crossref/OpenAlex/arXiv/OpenReview/DeepSeek/local files
      -> Codex adjudicates, rewrites, and delivers

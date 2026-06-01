@@ -28,7 +28,7 @@ from xml.etree import ElementTree as ET
 
 
 PUBMED_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
-DEFAULT_UA = "top-journal-review-writer/1.0"
+DEFAULT_UA = "review-ai-skills/1.0"
 PREPRINT_MARKERS = [
     "arxiv",
     "openreview",
@@ -506,7 +506,7 @@ def candidate_doi(row: dict[str, Any]) -> str:
 
 
 def pubmed_params(args: argparse.Namespace) -> dict[str, str]:
-    params = {"tool": "top-journal-review-writer"}
+    params = {"tool": "review-ai-skills"}
     if args.email:
         params["email"] = args.email
     if args.api_key:

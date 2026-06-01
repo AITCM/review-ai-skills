@@ -1,8 +1,12 @@
-# Top Journal Review Writer
+# ReviewAI Skills
 
-`top-journal-review-writer` is a Codex skill for building auditable, draft-first, top-journal review manuscripts.
+**Evidence-governed AI skills for top-journal literature reviews.**
 
-It is designed for projects that start from one or more GPT/Gemini/Deep Research drafts and need to turn them into a rigorous review article with governed literature evidence, framework discussion, multi-agent screening, full-text/RAG handoff, display-item planning, citation auditing, and cover-letter preparation.
+`review-ai-skills` is an AI-agent skill package for turning GPT/Gemini/Deep Research drafts into auditable, literature-grounded review manuscripts.
+
+It is designed for researchers who already have one or more AI-generated drafts, PubMed exports, notes, or earlier manuscript versions, and need a governed workflow for framework discussion, literature verification, multi-agent screening, full-text/RAG handoff, evidence-grounded figures and tables, citation auditing, and cover-letter preparation.
+
+ReviewAI Skills treats the AI assistant as a **chief editor plus specialist-agent orchestra**, not a one-shot manuscript generator. Drafts provide the starting logic; verified papers, official citations, full text, and human checkpoints determine what survives into the final review.
 
 ## What It Does
 
@@ -18,19 +22,37 @@ It is designed for projects that start from one or more GPT/Gemini/Deep Research
 - Renumbers numeric citations by first appearance and rebuilds final references from official citation exports.
 - Prepares concise Nature-style cover-letter materials.
 
-## Install As A Codex Skill
+## Quick Install With An AI Agent
 
-Copy this folder to your Codex skills directory:
+Give this repository link to your coding agent:
+
+```text
+https://github.com/AITCM/review-ai-skills
+```
+
+Then ask the agent:
+
+```text
+Install ReviewAI Skills from https://github.com/AITCM/review-ai-skills as a local AI-agent skill named review-ai-skills. After installing, validate the skill and show me the activation command.
+```
+
+This works well with Codex, Claude Code, Cursor, VS Code AI coding agents, and other tools that can clone a GitHub repository and place reusable instructions in a local skills or prompts directory.
+
+## Install Manually For Codex
+
+Clone or copy this repository into your Codex skills directory:
 
 ```powershell
-Copy-Item -Recurse -Force . "$HOME\.codex\skills\top-journal-review-writer"
+git clone https://github.com/AITCM/review-ai-skills "$HOME\.codex\skills\review-ai-skills"
 ```
 
 Then use the skill in Codex:
 
 ```text
-$top-journal-review-writer
+$review-ai-skills
 ```
+
+For other platforms, keep the repository as a reusable instruction/tool folder and point the agent to `SKILL.md`. If your tool supports persistent project rules, add a short rule such as: "Use ReviewAI Skills for draft-first literature review projects, evidence governance, citation auditing, and top-journal review workflows."
 
 ## Recommended Workflow
 

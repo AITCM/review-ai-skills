@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit the top-journal-review-writer skill package.
+"""Audit the review-ai-skills skill package.
 
 This script checks the skill as a reusable package: referenced resources,
 Python syntax, key workflow contracts, and UI metadata presence. It does not
@@ -82,7 +82,7 @@ def find_references(text: str) -> set[str]:
         ("", r"`(references/[^`]+?\.md)`"),
         ("", r"`(scripts/[^`]+?\.py)`"),
         ("", r"python\s+(scripts/[^ \n\r\t]+?\.py)"),
-        ("", r"python\s+[^ \n\r\t]*top-journal-review-writer/(scripts/[^ \n\r\t]+?\.py)"),
+        ("", r"python\s+[^ \n\r\t]*review-ai-skills/(scripts/[^ \n\r\t]+?\.py)"),
         ("scripts/", r"<S>/([^`\s]+?\.py)\b"),
         ("scripts/", r"\$SKILL_DIR[/\\]scripts[/\\]([^\"'`\s]+?\.py)\b"),
     ]
@@ -293,7 +293,7 @@ def write_markdown(path: Path, data: dict[str, Any]) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Audit the top-journal-review-writer skill package.")
+    parser = argparse.ArgumentParser(description="Audit the review-ai-skills skill package.")
     parser.add_argument("--skill-dir", default=str(Path(__file__).resolve().parents[1]))
     parser.add_argument("--markdown-out", default="")
     parser.add_argument("--fail-on-warning", action="store_true")

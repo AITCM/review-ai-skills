@@ -1,6 +1,6 @@
 # Skill Maintenance And Forward Test
 
-Use this reference when the user's goal is to improve `top-journal-review-writer` itself rather than to write a specific manuscript.
+Use this reference when the user's goal is to improve `review-ai-skills` itself rather than to write a specific manuscript.
 
 ## Quick Navigation
 
@@ -34,7 +34,7 @@ If a saved audit artifact is useful, write it to scratch space unless the user e
 ```bash
 python $SKILL_DIR/scripts/skill_audit.py \
   --skill-dir "$SKILL_DIR" \
-  --markdown-out C:/tmp/top_journal_review_writer_skill_audit.md
+  --markdown-out <scratch-dir>/review_ai_skills_audit.md
 ```
 
 Then run the system validator if it exists in the current Codex installation:
@@ -65,13 +65,13 @@ Project-free memory packet:
 ```bash
 python $SKILL_DIR/scripts/agent_memory.py init \
   --project-dir . \
-  --memory-dir C:/tmp/top_journal_review_writer_skill_smoke/agent_memory \
+  --memory-dir <scratch-dir>/review_ai_skills_smoke/agent_memory \
   --agents outline_architect,figure_table_designer
 
 python $SKILL_DIR/scripts/review_agent_orchestrator.py plan \
   --project-dir . \
-  --out-dir C:/tmp/top_journal_review_writer_skill_smoke/agent_orchestration \
-  --agent-memory-dir C:/tmp/top_journal_review_writer_skill_smoke/agent_memory \
+  --out-dir <scratch-dir>/review_ai_skills_smoke/agent_orchestration \
+  --agent-memory-dir <scratch-dir>/review_ai_skills_smoke/agent_memory \
   --no-default-inputs \
   --agents outline_architect,figure_table_designer \
   --goal "Smoke-test dynamic agent memory loading."

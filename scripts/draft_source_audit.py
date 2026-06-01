@@ -172,7 +172,7 @@ def http_json(url: str, timeout: int, user_agent: str) -> dict[str, Any] | None:
 
 
 def verify_crossref_by_doi(doi: str, timeout: int, mailto: str) -> dict[str, Any] | None:
-    ua = f"top-journal-review-writer/1.0 (mailto:{mailto})" if mailto else "top-journal-review-writer/1.0"
+    ua = f"review-ai-skills/1.0 (mailto:{mailto})" if mailto else "review-ai-skills/1.0"
     url = "https://api.crossref.org/works/" + urllib.parse.quote(doi)
     data = http_json(url, timeout=timeout, user_agent=ua)
     if data and data.get("status") == "ok":
@@ -183,7 +183,7 @@ def verify_crossref_by_doi(doi: str, timeout: int, mailto: str) -> dict[str, Any
 def verify_crossref_by_title(title: str, timeout: int, mailto: str) -> dict[str, Any] | None:
     if not title:
         return None
-    ua = f"top-journal-review-writer/1.0 (mailto:{mailto})" if mailto else "top-journal-review-writer/1.0"
+    ua = f"review-ai-skills/1.0 (mailto:{mailto})" if mailto else "review-ai-skills/1.0"
     params = urllib.parse.urlencode({"query.bibliographic": title, "rows": 1})
     url = f"https://api.crossref.org/works?{params}"
     data = http_json(url, timeout=timeout, user_agent=ua)
@@ -198,7 +198,7 @@ def verify_openalex_by_title(title: str, timeout: int, mailto: str) -> dict[str,
     if mailto:
         params["mailto"] = mailto
     url = "https://api.openalex.org/works?" + urllib.parse.urlencode(params)
-    data = http_json(url, timeout=timeout, user_agent="top-journal-review-writer/1.0")
+    data = http_json(url, timeout=timeout, user_agent="review-ai-skills/1.0")
     results = (data or {}).get("results") or []
     return results[0] if results else None
 

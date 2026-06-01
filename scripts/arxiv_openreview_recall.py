@@ -325,7 +325,7 @@ def main() -> int:
     parser.add_argument("--openreview-content", default="title", choices=["title", "abstract", "authors", "keywords", "all"])
     parser.add_argument("--timeout", type=int, default=30)
     parser.add_argument("--sleep", type=float, default=1.0)
-    parser.add_argument("--user-agent", default="top-journal-review-writer/1.0")
+    parser.add_argument("--user-agent", default="review-ai-skills/1.0")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 

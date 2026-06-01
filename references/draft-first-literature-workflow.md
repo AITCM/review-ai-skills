@@ -2,7 +2,7 @@
 
 Use this reference when the project starts from multiple GPT/Gemini/Deep Research drafts. The default order is: build draft memory, extract draft-native citation assets, have chief Codex read all drafts and citation assets, state a provisional thesis/claim map, create literature-discovery packets, dispatch Codex subagents to reason over full draft chunks and API routes, collect subagent candidates/API tasks with reference-overlap marking, normalize informal system names into official paper identities, verify real papers, and only then decide whether strict supplemental recall is needed. External LLM APIs such as DeepSeek are optional accelerators, not the default path.
 
-Set `$SKILL_DIR` to the local `top-journal-review-writer` skill directory before running command examples.
+Set `$SKILL_DIR` to the local `review-ai-skills` skill directory before running command examples.
 
 ## Quick Navigation
 

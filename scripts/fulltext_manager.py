@@ -438,7 +438,7 @@ def build_memory_index(pool_dir: Path, rows: list[dict[str, str]]) -> str:
 
 
 def http_get_bytes(url: str, timeout: int) -> tuple[bytes, str]:
-    request = urllib.request.Request(url, headers={"User-Agent": "top-journal-review-writer/0.1"})
+    request = urllib.request.Request(url, headers={"User-Agent": "review-ai-skills/0.1"})
     with urllib.request.urlopen(request, timeout=timeout) as response:
         content_type = response.headers.get("content-type", "")
         return response.read(), content_type
@@ -454,7 +454,7 @@ def http_post_json(url: str, payload: dict[str, Any], timeout: int) -> dict[str,
     request = urllib.request.Request(
         url,
         data=data,
-        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "top-journal-review-writer/0.1"},
+        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "review-ai-skills/0.1"},
         method="POST",
     )
     with urllib.request.urlopen(request, timeout=timeout) as response:

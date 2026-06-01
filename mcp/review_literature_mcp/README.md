@@ -1,6 +1,6 @@
 # Review Literature MCP
 
-Thin-wrapper MCP server for the `top-journal-review-writer` literature workflow.
+Thin-wrapper MCP server for the `review-ai-skills` literature workflow.
 
 The skill remains the operating doctrine. This MCP server exposes stable tools
 that call the bundled deterministic scripts and return compact JSON summaries.

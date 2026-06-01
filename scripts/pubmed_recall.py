@@ -285,10 +285,10 @@ def main() -> int:
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--email", default="", help="NCBI contact email, recommended.")
     parser.add_argument("--api-key", default="", help="NCBI API key, optional.")
-    parser.add_argument("--tool", default="top-journal-review-writer")
+    parser.add_argument("--tool", default="review-ai-skills")
     parser.add_argument("--timeout", type=int, default=30)
     parser.add_argument("--sleep", type=float, default=0.34, help="Delay between API calls.")
-    parser.add_argument("--user-agent", default="top-journal-review-writer/1.0")
+    parser.add_argument("--user-agent", default="review-ai-skills/1.0")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 

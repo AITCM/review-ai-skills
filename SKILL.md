@@ -1,9 +1,9 @@
 ---
-name: top-journal-review-writer
-description: "Top-journal review article workflow for high-impact review manuscripts: draft-first ingestion, literature verification, evidence synthesis, citation audit, multi-agent orchestration, display-item planning, manuscript revision, cover-letter preparation, and this skill's own maintenance. Use for review-project setup only when tied to a review manuscript, review-agent external-LLM configuration, specialist-agent orchestration for review writing, or maintaining this skill package. Do not trigger for generic Python environment, package metadata, credential, or agent questions outside review writing or this skill maintenance. Triggers include top journal review, Nature Reviews style, Q1 review, review manuscript, scoping review, systematic review, narrative review, cover letter, journal pitch, referee list, top-journal-review-writer maintenance, 顶刊综述, 高水平综述, 文献综述, 系统综述, 综述论文, 投稿信, 推荐审稿人, 综述项目环境, 综述智能体编排."
+name: review-ai-skills
+description: "Top-journal review article workflow for high-impact review manuscripts: draft-first ingestion, literature verification, evidence synthesis, citation audit, multi-agent orchestration, display-item planning, manuscript revision, cover-letter preparation, and this skill's own maintenance. Use for review-project setup only when tied to a review manuscript, review-agent external-LLM configuration, specialist-agent orchestration for review writing, or maintaining this skill package. Do not trigger for generic Python environment, package metadata, credential, or agent questions outside review writing or this skill maintenance. Triggers include top journal review, Nature Reviews style, Q1 review, review manuscript, scoping review, systematic review, narrative review, cover letter, journal pitch, referee list, review-ai-skills maintenance, 顶刊综述, 高水平综述, 文献综述, 系统综述, 综述论文, 投稿信, 推荐审稿人, 综述项目环境, 综述智能体编排."
 ---
 
-# Top Journal Review Writer
+# ReviewAI Skills
 
 ## Operating Rule
 
