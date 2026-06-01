@@ -1,0 +1,4 @@
+interface:
+  display_name: "Top Journal Review Writer"
+  short_description: "Maintain this skill or run draft-first top-journal review workflows"
+  default_prompt: "Use $top-journal-review-writer to maintain the skill package or run draft-first top-journal review workflows: read and remember AI-generated drafts, ingest user PubMed seed sets, build candidate boards, recover/verify literature, export official citations, manage deterministic citation numbering, screen supplemental recall lanes, fetch/parse full text, build cards and TreeRAG evidence, plan evidence-grounded tables and GPT image-ready figure prompts, orchestrate bounded specialist agents, draft with a past-present-future narrative arc, audit workflow-contamination in the article body, and prepare the cover letter."
