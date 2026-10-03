@@ -1,0 +1,93 @@
+name: Repair truncated public pilot responses
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/medcase-pilot-format-repair.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Retrieve original completed pilot artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 37120665256 --repo AITCM/review-ai-skills --name MedCase-CPU-Diagnostic-Pilot-E020 --dir original
+      - name: Install identical data dependencies
+        run: python3 -m pip install --quiet --disable-pip-version-check numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1 pyarrow==20.0.0
+      - name: Repeat only 15 truncated prompts with a larger output ceiling
+        shell: bash
+        run: |
+          mkdir -p repair-output
+          cat > repair-output/REPAIR_SOURCE.py <<'PY'
+          import hashlib,importlib.util,json,os,re,subprocess,tarfile,time,urllib.request
+          from pathlib import Path
+          original=Path('original'); out=Path('repair-output'); cache=Path('repair-cache'); cache.mkdir(exist_ok=True)
+          source=original/'PILOT_SOURCE.py'
+          assert hashlib.sha256(source.read_bytes()).hexdigest()=='8cd52a9f9e3a331b1b4f6f68772c185ac93c5618053aa412979df2592e99be84'
+          spec=importlib.util.spec_from_file_location('pilot',source); pilot=importlib.util.module_from_spec(spec); spec.loader.exec_module(pilot)
+          receipt=json.loads((original/'RECEIPT.json').read_text())
+          prompts={r['id']:r for r in map(json.loads,(original/'PROMPTS.jsonl').read_text().splitlines())}
+          pred=list(map(json.loads,(original/'PREDICTIONS.jsonl').read_text().splitlines()))
+          failed=[r for r in pred if r['parsed'] is None]
+          assert len(failed)==15
+          assert all(r['stop_type']=='limit' or r['stopped_limit'] for r in failed)
+          state={'status':'running','source_run':37120665256,'repair_selection':'All and only JSON failures with length-limit stop','requested_repairs':len(failed),'original_n_predict':96,'repair_n_predict':256,'model_changed':False,'prompts_changed':False,'test_set_accessed':False,'paid_inference_api_used':False,'started_utc':pilot.now()}
+          (out/'REPAIR_RECEIPT.json').write_text(json.dumps(state,indent=2))
+          binary=receipt['llama_cpp'];model=receipt['model']
+          pilot.download(binary['source_url'],cache/'llama.tar.gz',binary['sha256'],binary['bytes'])
+          with tarfile.open(cache/'llama.tar.gz') as tar:tar.extractall(cache/'llama',filter='data')
+          server=list((cache/'llama').rglob('llama-server'))[0].resolve();server.chmod(server.stat().st_mode|0o111)
+          pilot.download(model['source_url'],cache/model['filename'],model['sha256'],model['bytes'])
+          env=os.environ.copy();env['LD_LIBRARY_PATH']=str(server.parent)+':'+env.get('LD_LIBRARY_PATH','')
+          cmd=[str(server),'-m',str((cache/model['filename']).resolve()),'--host','127.0.0.1','--port','8080','-c','4096','-np','1','-t','4','-tb','4','-ngl','0','--no-webui']
+          log=(out/'server.log').open('w');proc=subprocess.Popen(cmd,stdout=log,stderr=subprocess.STDOUT,env=env)
+          repairs=[]
+          def first_diagnosis(text):
+              m=re.search(r'"final_diagnosis"\s*:\s*',text)
+              if not m:return None
+              try:
+                  value,_=json.JSONDecoder().raw_decode(text[m.end():]);return value if isinstance(value,str) else None
+              except json.JSONDecodeError:return None
+          try:
+              ready=False
+              for _ in range(90):
+                  if proc.poll() is not None:raise RuntimeError('Server exited')
+                  try:
+                      with urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=3) as response:
+                          if response.status==200:ready=True;break
+                  except Exception:time.sleep(1)
+              if not ready:raise TimeoutError('Server not ready')
+              for old in failed:
+                  p=prompts[old['id']];assert hashlib.sha256(p['prompt'].encode()).hexdigest()==p['prompt_sha256']
+                  t=time.perf_counter()
+                  response=pilot.post('/completion',{'prompt':p['prompt'],'n_predict':256,'temperature':0,'seed':20261003,'cache_prompt':True,'id_slot':0,'stop':['<|im_end|>'],'json_schema':{'type':'object','properties':{'final_diagnosis':{'type':'string'},'supporting_evidence':{'type':'string'}},'required':['final_diagnosis','supporting_evidence'],'additionalProperties':False}})
+                  text=response.get('content','')
+                  try:parsed=json.loads(text)
+                  except json.JSONDecodeError:parsed=None
+                  before=first_diagnosis(old['prediction_text']);after=first_diagnosis(text)
+                  item={'id':old['id'],'query_id':old['query_id'],'arm':old['arm'],'prompt_sha256':p['prompt_sha256'],'prediction_text':text,'parsed':parsed,'original_diagnosis_field':before,'repaired_diagnosis_field':after,'diagnosis_field_unchanged':before==after,'elapsed_seconds':time.perf_counter()-t,'stop_type':response.get('stop_type'),'stopped_limit':response.get('stopped_limit'),'tokens_predicted':response.get('tokens_predicted'),'timings':response.get('timings')}
+                  repairs.append(item)
+                  with (out/'REPAIRS.jsonl').open('a') as fh:fh.write(json.dumps(item,ensure_ascii=False)+'\n')
+                  print('REPAIR_COMPLETED',len(repairs),'/15','valid_json',isinstance(parsed,dict),'diagnosis_unchanged',before==after,flush=True)
+              state.update({'status':'completed','completed_utc':pilot.now(),'completed_repairs':len(repairs),'valid_json_repairs':sum(isinstance(x['parsed'],dict) for x in repairs),'diagnosis_fields_unchanged':sum(x['diagnosis_field_unchanged'] for x in repairs),'interpretation':'Format remediation only. Preserve original outputs and report any diagnosis changes; no clinical efficacy claims.'})
+              (out/'REPAIR_RECEIPT.json').write_text(json.dumps(state,indent=2))
+          finally:
+              proc.terminate()
+              try:proc.wait(timeout=15)
+              except subprocess.TimeoutExpired:proc.kill();proc.wait()
+              log.close()
+          (out/'OUTPUT_CHECKSUMS.json').write_text(json.dumps({p.name:{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size} for p in out.iterdir() if p.is_file()},indent=2))
+          PY
+          python3 -u repair-output/REPAIR_SOURCE.py
+      - name: Preserve all format repair results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: MedCase-Pilot-Format-Repair
+          path: repair-output/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 6
