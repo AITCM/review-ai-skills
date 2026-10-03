@@ -1,0 +1,38 @@
+name: Public MedCase diagnostic CPU pilot
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/medcase-cpu-diagnostic-pilot.yml']
+permissions:
+  contents: read
+concurrency:
+  group: medcase-cpu-diagnostic-pilot-20261003
+  cancel-in-progress: false
+jobs:
+  pilot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Fetch pinned public pilot script
+        shell: bash
+        run: |
+          mkdir -p pilot-output
+          curl --fail --location --retry 2 --max-time 60 https://raw.githubusercontent.com/AITCM/review-ai-skills/b5d29d58bf22f0e794e9745e214ff92e04d1de26/tools/medcase_cpu_diagnostic_pilot.py -o pilot.py
+          python3 -m py_compile pilot.py
+          cp pilot.py pilot-output/PILOT_SOURCE.py
+      - name: Install pinned CPU data dependencies
+        run: python3 -m pip install --quiet --disable-pip-version-check numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1 pyarrow==20.0.0
+      - name: Execute real open-weight diagnostic pilot
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 -u pilot.py 2>&1 | tee pilot-output/run.log
+      - name: Preserve pilot outputs, not raw datasets or model weights
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: MedCase-CPU-Diagnostic-Pilot-E020
+          path: pilot-output/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 6
