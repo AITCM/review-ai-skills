@@ -1,0 +1,127 @@
+name: Verify public MedCaseReasoning files
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/medcase-public-download.yml']
+permissions:
+  contents: read
+concurrency:
+  group: medcase-public-download-20261003
+  cancel-in-progress: false
+jobs:
+  download:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Download immutable public files and verify SHA-256
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, pathlib, time, urllib.request
+          from datetime import datetime, timezone
+          revision = '469a5365bc534b5b2b9cfbc52b2ef2a10f43a339'
+          root = pathlib.Path('medcase-files')
+          (root / 'data').mkdir(parents=True, exist_ok=True)
+          entries = [
+            ('val', 500, 3783083, '442a60139b8b8d0526690ce3773c47c654e19a979cb95e76750eabc0e0e53b4d'),
+            ('train', 13092, 99332305, '12b23b1d652caff931ea53012e8b84c2e74bfd3c6394c4fcdea63afa74158207'),
+            ('test', 897, 7346727, '353b33113cd504a870430f59d4149f1cc9e1c5561523ba745031719548b1c643')]
+          receipt = {'dataset': 'zou-lab/MedCaseReasoning', 'revision': revision, 'started_utc': datetime.now(timezone.utc).isoformat(), 'files': [], 'status': 'running'}
+          def save():
+              (root / 'DOWNLOAD_RECEIPT.json').write_text(json.dumps(receipt, indent=2), encoding='utf-8')
+          save()
+          for split, rows, size, expected in entries:
+              name = split + '-00000-of-00001.parquet'
+              url = 'https://huggingface.co/datasets/zou-lab/MedCaseReasoning/resolve/' + revision + '/data/' + name + '?download=true'
+              dest = root / 'data' / name
+              part = dest.with_suffix('.part')
+              for attempt in range(3):
+                  try:
+                      h = hashlib.sha256()
+                      total = 0
+                      req = urllib.request.Request(url, headers={'User-Agent': 'public-dataset-checksum/1.0'})
+                      with urllib.request.urlopen(req, timeout=60) as response, part.open('wb') as out:
+                          while True:
+                              block = response.read(1024 * 1024)
+                              if not block:
+                                  break
+                              total += len(block)
+                              if total > size:
+                                  raise RuntimeError('Response exceeds expected file size')
+                              h.update(block)
+                              out.write(block)
+                      if total != size or h.hexdigest() != expected:
+                          raise RuntimeError('Byte count or SHA-256 mismatch')
+                      with part.open('rb') as check:
+                          if check.read(4) != b'PAR1':
+                              raise RuntimeError('Invalid Parquet header')
+                          check.seek(-4, 2)
+                          if check.read(4) != b'PAR1':
+                              raise RuntimeError('Invalid Parquet footer')
+                      part.replace(dest)
+                      receipt['files'].append({'split': split, 'path': str(dest.relative_to(root)), 'bytes': total, 'sha256': h.hexdigest(), 'expected_rows': rows, 'source_url': url, 'checksum_verified': True})
+                      save()
+                      print(split, 'VERIFIED', total, h.hexdigest(), flush=True)
+                      break
+                  except Exception as exc:
+                      if part.exists():
+                          part.unlink()
+                      print(split, 'attempt', attempt + 1, type(exc).__name__, str(exc), flush=True)
+                      if attempt == 2:
+                          receipt['status'] = 'failed'
+                          receipt['error'] = split + ': ' + type(exc).__name__ + ': ' + str(exc)
+                          save()
+                          raise
+                      time.sleep(2 ** (attempt + 1))
+          receipt['status'] = 'all_raw_files_sha256_verified'
+          receipt['completed_utc'] = datetime.now(timezone.utc).isoformat()
+          save()
+          (root / 'SOURCE.txt').write_text('Source: Zou Lab, MedCaseReasoning\nhttps://huggingface.co/datasets/zou-lab/MedCaseReasoning\nRevision: ' + revision + '\nThe Parquet files are unmodified upstream data. The optional CSV files are derived field projections, not original downloads.\nLicense metadata should be checked against the upstream release; the dataset card and repository statements differ. No model inference is performed.\n', encoding='utf-8')
+          PY
+      - name: Install pinned Parquet reader
+        run: python3 -m pip install --quiet --disable-pip-version-check pyarrow==20.0.0
+      - name: Verify row counts and export training and validation fields
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import csv, gzip, hashlib, json, pathlib
+          import pyarrow.parquet as pq
+          root = pathlib.Path('medcase-files')
+          receipt = json.loads((root / 'DOWNLOAD_RECEIPT.json').read_text())
+          fields = ['pmcid', 'case_prompt', 'diagnostic_reasoning', 'final_diagnosis']
+          (root / 'derived').mkdir(exist_ok=True)
+          for item in receipt['files']:
+              path = root / item['path']
+              pf = pq.ParquetFile(path)
+              actual_rows = pf.metadata.num_rows
+              if actual_rows != item['expected_rows']:
+                  raise RuntimeError('Unexpected row count for ' + item['split'])
+              missing = set(fields) - set(pf.schema_arrow.names)
+              if missing:
+                  raise RuntimeError('Missing columns: ' + repr(sorted(missing)))
+              item['actual_rows'] = actual_rows
+              item['columns'] = pf.schema_arrow.names
+              print(item['split'], 'ROWS_VERIFIED', actual_rows, flush=True)
+              if item['split'] in ('train', 'val'):
+                  output = root / 'derived' / (item['split'] + '_case_fields.csv.gz')
+                  with gzip.open(output, 'wt', encoding='utf-8', newline='') as fh:
+                      writer = csv.DictWriter(fh, fieldnames=['source_row_index'] + fields)
+                      writer.writeheader()
+                      index = 0
+                      for batch in pf.iter_batches(batch_size=512, columns=fields):
+                          for row in batch.to_pylist():
+                              writer.writerow({'source_row_index': index, **row})
+                              index += 1
+                  item['projection'] = {'path': str(output.relative_to(root)), 'bytes': output.stat().st_size, 'sha256': hashlib.sha256(output.read_bytes()).hexdigest()}
+          receipt['status'] = 'all_raw_files_sha256_and_rows_verified'
+          (root / 'DOWNLOAD_RECEIPT.json').write_text(json.dumps(receipt, indent=2), encoding='utf-8')
+          PY
+      - name: Preserve verified data and execution receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: MedCaseReasoning-469a536-verified
+          path: medcase-files/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
