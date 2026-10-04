@@ -1,0 +1,23 @@
+name: E020 A2 S-PubMedBERT Dense Baseline
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e020-a2-spubmedbert.yml']
+permissions:
+  contents: read
+jobs:
+  dense:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_a2_spubmedbert.py -o e020.py
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 torch==2.7.1 sentence-transformers==5.1.1 huggingface_hub==0.35.1
+      - run: python3 -u e020.py | tee E020_A2_run.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E020-A2-S-PubMedBERT
+          path: |
+            e020-a2-output/
+            E020_A2_run.log
+          retention-days: 5
+          compression-level: 6
