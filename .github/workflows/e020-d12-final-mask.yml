@@ -1,0 +1,43 @@
+name: E020 D12 Final Mask Negative Controls
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e020-d12-final-mask.yml']
+permissions:
+  contents: read
+jobs:
+  variant:
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [exact, aggressive, shuffle]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_d12_mask_variant.py -o x.py
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - run: python3 -u x.py --mode ${{ matrix.mode }} --out out
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: fmask-${{ matrix.mode }}
+          path: out/
+          retention-days: 7
+  aggregate:
+    needs: variant
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_d12_mask_aggregate.py -o agg.py
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: fmask-*
+          path: downloads
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - run: python3 -u agg.py | tee D12.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E020-D12-Final-Mask-Aggregate
+          path: |
+            final-mask-agg/
+            D12.log
+          retention-days: 7
