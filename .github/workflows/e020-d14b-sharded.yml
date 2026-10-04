@@ -1,0 +1,46 @@
+name: E020 D14B Sharded Independent Final
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e020-d14b-sharded.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  shard:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0,1,2,3,4]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_d14b_shard.py -o x.py
+      - run: gh run download 37198843892 -R AITCM/review-ai-skills -n E020-Final-Development-Lock -D locked
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 torch==2.7.1 sentence-transformers==5.1.1 huggingface_hub==0.35.1
+      - run: python3 -u x.py --shard ${{ matrix.shard }} --out out
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: shard-${{ matrix.shard }}
+          path: out/
+          retention-days: 7
+  aggregate:
+    needs: shard
+    runs-on: ubuntu-24.04
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_d14b_aggregate.py -o agg.py
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: shard-*
+          path: downloads
+      - run: python3 -m pip install --quiet numpy==2.2.6
+      - run: python3 -u agg.py | tee D14B.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E020-D14B-Independent-Final
+          path: |
+            d14b-aggregate/
+            D14B.log
+          retention-days: 14
