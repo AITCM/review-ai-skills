@@ -1,0 +1,32 @@
+name: MedCase original paper R001 source audit
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/medcase-original-r001.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Get immutable audit implementation
+        run: |
+          curl --fail --location --retry 2 https://raw.githubusercontent.com/AITCM/review-ai-skills/8f043c003f98496db21c517fcf8c988a8a6f17c8/tools/medcase_original_audit_r001.py -o audit.py
+          python3 -m py_compile audit.py
+      - name: Install bounded source readers
+        run: python3 -m pip install --quiet --disable-pip-version-check pyarrow==20.0.0 pymupdf==1.26.4
+      - name: Verify primary sources and original data
+        run: |
+          set -o pipefail
+          python3 -u audit.py
+          cp audit.py r001-output/AUDIT_SOURCE.py
+      - name: Preserve source audit not inference claims
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: MedCase-original-R001-source-audit
+          path: r001-output/
+          retention-days: 2
+          if-no-files-found: error
+          compression-level: 6
