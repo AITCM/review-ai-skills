@@ -1,0 +1,22 @@
+name: E020 A1B Label and hard-negative audit
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e020-a1b-audit.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_a1b_label_audit.py -o e020.py
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scikit-learn==1.6.1
+      - run: python3 -u e020.py | tee E020_A1B_run.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E020-A1B-Label-Audit
+          path: |
+            e020-a1b-output/
+            E020_A1B_run.log
+          retention-days: 5
