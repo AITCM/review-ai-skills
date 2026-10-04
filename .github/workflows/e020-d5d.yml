@@ -1,0 +1,30 @@
+name: E020 D5D Independent Debiased Evaluation
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e020-d5d.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  d5d:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_d5d_independent.py -o run.py
+      - run: gh run download 37198077841 -R AITCM/review-ai-skills -n E020-D5-Debiased-Utility -D d5
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 torch==2.7.1 sentence-transformers==5.1.1 huggingface_hub==0.35.1
+      - name: Execute
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u run.py 2>&1 | tee D5D.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E020-D5D-Independent-Debiased
+          path: |
+            e020-d5d-output/
+            D5D.log
+          retention-days: 7
