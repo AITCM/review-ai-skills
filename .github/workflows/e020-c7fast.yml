@@ -1,0 +1,32 @@
+name: E020 C7 Fast Diversity Evidence Use
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e020-c7fast.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  c7:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_c7fast_diversity.py -o e020.py
+      - run: gh run download 37174865055 -R AITCM/review-ai-skills -n E020-C2-Reasoning-Utility -D c2
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - name: Execute
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u e020.py 2>&1 | tee E020_C7FAST_run.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: E020-C7FAST-Diversity-Use
+          path: |
+            e020-c7fast-output/
+            E020_C7FAST_run.log
+          if-no-files-found: error
+          retention-days: 7
