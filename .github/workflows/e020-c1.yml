@@ -1,4 +1,5 @@
 name: E020 C1 Independent Reasoning Coverage
+# rerun after ranking-key fix
 on:
   push:
     branches: ['data-tools/medcase-download-20261003']
