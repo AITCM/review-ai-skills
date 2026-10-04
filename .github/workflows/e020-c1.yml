@@ -18,9 +18,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh run download 37173983037 -n E020-B3-Learned-Utility -D b3
-          gh run download 37174104783 -n E020-B4-Pairwise-Hard-Negative -D b4
-          gh run download 37169579765 -n E020-A2-S-PubMedBERT -D a2
+          gh run download 37173983037 -R AITCM/review-ai-skills -n E020-B3-Learned-Utility -D b3
+          gh run download 37174104783 -R AITCM/review-ai-skills -n E020-B4-Pairwise-Hard-Negative -D b4
+          gh run download 37169579765 -R AITCM/review-ai-skills -n E020-A2-S-PubMedBERT -D a2
       - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 torch==2.7.1 sentence-transformers==5.1.1 huggingface_hub==0.35.1
       - name: Execute
         shell: bash
