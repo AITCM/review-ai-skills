@@ -1,0 +1,59 @@
+name: E020-A2 Scrubbed Reasoning Lexical Oracle
+on:
+  push:
+    branches: ['e020-case-utility-landscape']
+    paths: ['.github/workflows/e020-reasoning-lexical.yml']
+permissions:
+  contents: read
+jobs:
+  oracle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: e020-case-utility-landscape}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1 pyarrow==20.0.0
+      - name: Analyze scrubbed reasoning space
+        shell: bash
+        run: |
+          python - <<'PY'
+          import sys, numpy as np
+          from pathlib import Path
+          from sklearn.feature_extraction.text import TfidfVectorizer
+          sys.path.insert(0,'.')
+          from tools.e020_case_utility_landscape import load_data, cohort, metrics, strip_reason, dj, djl, norm_label
+          out=Path('output'); out.mkdir(exist_ok=True)
+          d=load_data(Path('cache')); train,val=d['train'],d['val']; _,seen=cohort(train,val)
+          tr=[]; va=[]; rt=rv=0
+          for r in train:
+              x,ok=strip_reason(r); tr.append(x); rt+=ok
+          for r in val:
+              x,ok=strip_reason(r); va.append(x); rv+=ok
+          v=TfidfVectorizer(ngram_range=(1,2),lowercase=True,sublinear_tf=True,min_df=2,max_df=.98,max_features=80000,dtype=np.float32)
+          X=v.fit_transform(tr); Q=v.transform(va); S=(Q@X.T).toarray(); I=np.argsort(-S,axis=1)[:,:50]; SC=np.take_along_axis(S,I,axis=1)
+          s,p,h,e=metrics(I,SC,train,val,seen,'reasoning_tfidf_scrubbed')
+          s['exact_diagnosis_phrase_removed_train']=rt; s['exact_diagnosis_phrase_removed_val']=rv
+          dj(out/'reasoning_tfidf_scrubbed_summary.json',s); djl(out/'reasoning_tfidf_scrubbed_per_query.jsonl',p)
+          # case-text neighbor overlap and reasoning-positive candidates
+          c=TfidfVectorizer(ngram_range=(1,2),lowercase=True,sublinear_tf=True,min_df=2,max_df=.98,max_features=80000,dtype=np.float32)
+          CX=c.fit_transform([str(r['case_prompt']) for r in train]); CQ=c.transform([str(r['case_prompt']) for r in val]); CS=(CQ@CX.T).toarray(); CI=np.argsort(-CS,axis=1)[:,:50]
+          labs=[norm_label(r['final_diagnosis']) for r in train]; ovs=[]; hp=[]
+          for qi,r in enumerate(val):
+              a=set(map(int,CI[qi,:10])); b=set(map(int,I[qi,:10])); ovs.append(len(a&b)/len(a|b) if a|b else 1)
+              q=norm_label(r['final_diagnosis']); case50=set(map(int,CI[qi,:50]))
+              for rk,j in enumerate(I[qi,:10],1):
+                  j=int(j)
+                  if labs[j]==q and j not in case50:
+                      hp.append({'query_index':qi,'query_pmcid':r['pmcid'],'query_diagnosis':r['final_diagnosis'],'train_index':j,'candidate_diagnosis':train[j]['final_diagnosis'],'reasoning_rank':rk,'reasoning_score':float(S[qi,j]),'case_text_rank_gt':50})
+                      break
+          s['case_vs_reasoning_top10_mean_jaccard']=float(np.mean(ovs)); s['reasoning_positive_candidates_n']=len(hp); dj(out/'reasoning_tfidf_scrubbed_summary.json',s); djl(out/'reasoning_positive_candidates.jsonl',hp)
+          PY
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: E020-A2-reasoning-lexical
+          path: output/
+          if-no-files-found: error
+          retention-days: 3
