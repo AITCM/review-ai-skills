@@ -1,0 +1,28 @@
+name: E020 A1 Case Utility Landscape
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e020-a1-case-utility-landscape.yml']
+permissions:
+  contents: read
+jobs:
+  landscape:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Fetch pinned analysis
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_case_utility_landscape.py -o e020.py
+      - name: Install pinned dependencies
+        run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - name: Execute E020-A1 on official train/validation splits
+        run: python3 -u e020.py | tee E020_A1_run.log
+      - name: Preserve outputs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E020-A1-Case-Utility-Landscape
+          path: |
+            e020-a1-output/
+            E020_A1_run.log
+          retention-days: 5
+          compression-level: 6
