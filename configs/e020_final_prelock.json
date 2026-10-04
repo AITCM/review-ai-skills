@@ -1,0 +1,25 @@
+{
+  "project": "CASE-EVID-001",
+  "method_working_name": "C2-debiased-final-two-feature",
+  "status": "development_prelock_test_sealed",
+  "dataset_revision": "469a5365bc534b5b2b9cfbc52b2ef2a10f43a339",
+  "query_input": "case_prompt only",
+  "historical_privileged_field": "diagnostic_reasoning with exact normalized final-diagnosis phrase masked",
+  "utility": "symmetric reasoning-set softF1 (soft precision/soft recall harmonic mean)",
+  "features": [
+    "semantic_case_similarity",
+    "predicted_reasoning_similarity"
+  ],
+  "meta_split": "SHA256(E020-FINAL-<seed>:PMCID) mod 5 == 0",
+  "primary_seed": 20261004,
+  "case_svd_dim": 256,
+  "reasoning_svd_dim": 128,
+  "ridge_alpha": 10,
+  "training_candidate_k": 40,
+  "utility_margin": 0.03,
+  "deployment_candidate_k": 50,
+  "pairwise_top_utility": 5,
+  "pairwise_bottom_utility": 10,
+  "logistic_C": 1,
+  "test_access": "sealed until D11-D14 pass"
+}
