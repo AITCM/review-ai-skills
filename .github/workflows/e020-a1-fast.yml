@@ -1,0 +1,22 @@
+name: E020 A1 Fast Case Utility Landscape
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e020-a1-fast.yml']
+permissions:
+  contents: read
+jobs:
+  landscape:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_case_utility_landscape_fast.py -o e020.py
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - run: python3 -u e020.py | tee E020_A1_run.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E020-A1-Fast-Case-Utility-Landscape
+          path: |
+            e020-a1-fast-output/
+            E020_A1_run.log
+          retention-days: 5
