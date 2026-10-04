@@ -1,0 +1,37 @@
+name: E020 T001 Locked Test Evaluation
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e020-t001.yml']
+permissions:
+  contents: read
+jobs:
+  t001:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Fetch locked scripts
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_t001_rank.py -o rank.py
+          curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_t001_eval.py -o eval.py
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - name: Phase 1 - blind ranking
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u rank.py 2>&1 | tee T001_rank.log
+          test -s t001-output/T001_RANKING_LOCK.json
+          test -s t001-output/T001_BLIND_RANKINGS.jsonl
+      - name: Phase 2 - outcome evaluation after ranking lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u eval.py 2>&1 | tee T001_eval.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E020-T001-Locked-Test
+          path: |
+            t001-output/
+            T001_rank.log
+            T001_eval.log
+          retention-days: 14
