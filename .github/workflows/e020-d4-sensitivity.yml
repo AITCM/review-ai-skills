@@ -1,0 +1,26 @@
+name: E020 D4 Parameter Sensitivity
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e020-d4-sensitivity.yml']
+permissions:
+  contents: read
+jobs:
+  sensitivity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_d4_sensitivity.py -o d4.py
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - name: Execute
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u d4.py 2>&1 | tee D4.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E020-D4-Parameter-Sensitivity
+          path: |
+            e020-d4-output/
+            D4.log
+          retention-days: 7
