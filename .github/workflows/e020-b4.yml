@@ -1,0 +1,28 @@
+name: E020 B4 Pairwise Hard Negative Ranker
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e020-b4.yml']
+permissions:
+  contents: read
+jobs:
+  b4:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_b4_pairwise.py -o e020.py
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - name: Execute
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u e020.py 2>&1 | tee E020_B4_run.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: E020-B4-Pairwise-Hard-Negative
+          path: |
+            e020-b4-output/
+            E020_B4_run.log
+          if-no-files-found: error
+          retention-days: 7
