@@ -1,0 +1,27 @@
+name: E020 D5B Original C2 Debiased Reaudit
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e020-d5b.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  reaudit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_d5b_reaudit.py -o x.py
+      - run: gh run download 37174865055 -R AITCM/review-ai-skills -n E020-C2-Reasoning-Utility -D c2
+      - run: gh run download 37198077841 -R AITCM/review-ai-skills -n E020-D5-Debiased-Utility -D d5
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - run: python3 -u x.py | tee D5B.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E020-D5B-Reaudit
+          path: |
+            e020-d5b-output/
+            D5B.log
+          retention-days: 7
