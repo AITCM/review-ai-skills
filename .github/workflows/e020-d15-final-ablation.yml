@@ -1,0 +1,43 @@
+name: E020 D15 Final Feature Multiseed
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e020-d15-final-ablation.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  runs:
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        seed: [20261004,20261005,20261006,20261007,20261008]
+        features: [full, semantic, predicted]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_final_robustness_seed.py -o run.py
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - run: python3 -u run.py --seed ${{ matrix.seed }} --mask exact --features ${{ matrix.features }} --out out
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d15-${{ matrix.features }}-${{ matrix.seed }}
+          path: out/
+          retention-days: 7
+  aggregate:
+    needs: runs
+    runs-on: ubuntu-24.04
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_d15_aggregate.py -o agg.py
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: d15-*
+          path: downloads
+      - run: python3 -m pip install --quiet numpy==2.2.6
+      - run: python3 -u agg.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E020-D15-Final-Feature-Ablation
+          path: d15-aggregate/
+          retention-days: 7
