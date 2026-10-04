@@ -30,7 +30,7 @@ va=pd.read_parquet(BASE+"/val-00000-of-00001.parquet")[["diagnostic_reasoning","
 b3=load_rank("b3/e020-b3-output/E020_B3_RANKINGS.jsonl","B3_top50")
 base=load_rank("b3/e020-b3-output/E020_B3_RANKINGS.jsonl","baseline_top50")
 b4=load_rank("b4/e020-b4-output/E020_B4_RANKINGS.jsonl","B4")
-a2=load_rank("a2/e020-a2-output/E020_A2_TOP50.jsonl","top50")
+a2=load_rank("a2/e020-a2-output/E020_A2_TOP50.jsonl","indices")
 methods={"tfidf":base,"spubmedbert_case":a2,"B3":b3,"B4":b4}
 needed=set()
 for R in methods.values():
