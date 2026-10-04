@@ -1,0 +1,44 @@
+name: E020 D11 Final Two Feature Stability
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e020-d11-final-stability.yml']
+permissions:
+  contents: read
+jobs:
+  seed:
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        seed: [20261004,20261005,20261006,20261007,20261008,20261009,20261010,20261011,20261012,20261013]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_d11_final_seed.py -o seed.py
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - run: python3 -u seed.py --seed ${{ matrix.seed }} --out out
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: final-${{ matrix.seed }}
+          path: out/
+          retention-days: 7
+  aggregate:
+    needs: seed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_d11_final_aggregate.py -o agg.py
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: final-*
+          path: downloads
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - run: python3 -u agg.py | tee D11.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E020-D11-Final-Stability-Aggregate
+          path: |
+            final-aggregate/
+            D11.log
+          retention-days: 7
