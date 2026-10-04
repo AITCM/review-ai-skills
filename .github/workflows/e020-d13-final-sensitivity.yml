@@ -1,0 +1,22 @@
+name: E020 D13 Final Parameter Sensitivity
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e020-d13-final-sensitivity.yml']
+permissions:
+  contents: read
+jobs:
+  d13:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_d13_final_sensitivity.py -o x.py
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - run: python3 -u x.py | tee D13.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E020-D13-Final-Sensitivity
+          path: |
+            e020-d13-output/
+            D13.log
+          retention-days: 7
