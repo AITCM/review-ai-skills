@@ -1,0 +1,47 @@
+name: E020 T002 Independent Locked Test
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e020-t002.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  shard:
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        shard: [0,1,2,3,4,5]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_t002_shard.py -o shard.py
+      - run: gh run download 37201492370 -R AITCM/review-ai-skills -n E020-T001-Locked-Test -D locked
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 torch==2.7.1 sentence-transformers==5.1.1 huggingface_hub==0.35.1
+      - run: python3 -u shard.py --shard ${{ matrix.shard }} --nshards 6 --out out
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: t002-${{ matrix.shard }}
+          path: out/
+          retention-days: 14
+  aggregate:
+    needs: shard
+    runs-on: ubuntu-24.04
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e020_t002_aggregate.py -o agg.py
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: t002-*
+          path: downloads
+      - run: python3 -m pip install --quiet numpy==2.2.6
+      - run: python3 -u agg.py | tee T002.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E020-T002-Independent-Test
+          path: |
+            t002-aggregate/
+            T002.log
+          retention-days: 14
