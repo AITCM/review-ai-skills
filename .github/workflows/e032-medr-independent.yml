@@ -1,0 +1,26 @@
+name: E032 Independent MedRBench External Evaluator
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e032-medr-independent.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  eval:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e032_medr_independent.py -o run.py
+      - run: gh run download 37250624477 -R AITCM/review-ai-skills -n E031-V2-Strict-MedRBench-External -D locked
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 torch==2.7.1 sentence-transformers==5.1.1 huggingface_hub==0.35.1
+      - run: python3 -u run.py | tee E032.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E032-Independent-MedRBench-External
+          path: |
+            e032-output/
+            E032.log
+          retention-days: 14
