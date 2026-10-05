@@ -1,0 +1,56 @@
+name: E030 Download Five External Datasets
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e030-download-five-external.yml']
+permissions:
+  contents: read
+jobs:
+  download:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e030_download_five_external.py -o e030.py
+      - run: python3 -m pip install --quiet pyarrow==20.0.0
+      - name: Download and validate all five official datasets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u e030.py 2>&1 | tee E030_download.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E030-MedRBench
+          path: external-five/01_MedRBench/
+          retention-days: 7
+          compression-level: 0
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E030-AgentClinic-NEJM
+          path: external-five/02_AgentClinic_NEJM/
+          retention-days: 7
+          compression-level: 0
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E030-PMC-Patients-HumanEval
+          path: external-five/03_PMC_Patients_HumanEval/
+          retention-days: 7
+          compression-level: 0
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E030-CaseReportBench
+          path: external-five/04_CaseReportBench/
+          retention-days: 7
+          compression-level: 0
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E030-DDXPlus-English
+          path: external-five/05_DDXPlus_English/
+          retention-days: 7
+          compression-level: 0
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E030-Master-Manifest
+          path: |
+            external-five/MASTER_MANIFEST.json
+            E030_download.log
+          retention-days: 7
