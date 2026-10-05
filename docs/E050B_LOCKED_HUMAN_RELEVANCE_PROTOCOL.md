@@ -13,9 +13,11 @@ Primary population:
 - patient-level mapping is high confidence under the E050A rule:
   - single-patient source article, OR
   - candidate is the unique best patient-text match to the MedCase case prompt with char-5gram cosine margin >= 0.05.
-- expected locked population: 133 annotated pairs across 118 queries, representing 121 unique candidate patient UIDs.
+- revised locked population after label-free source-leakage exclusion: 129 annotated pairs across 115 queries, representing 120 unique candidate patient UIDs.
 
 Human relevance labels are not used to define this mapping population.
+
+Amendment before Phase 2 labels were loaded: four query-candidate pairs came from the same PMC source article and were excluded by source identity alone. The first E050B scoring attempt stopped on this condition before producing any scores or loading human labels.
 
 ## Frozen model
 Exactly the T001 C2-debiased-final-two-feature configuration:
