@@ -1,0 +1,51 @@
+name: E040 V2 Freeze AgentClinic Expert Population
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e040-v2-pack.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  pack:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e040_pack.py -o pack.py
+      - run: gh run download 37255292221 -R AITCM/review-ai-skills -n E040-AgentClinic-NEJM-Blinded-Expert-Pack -D old
+      - run: mkdir -p e040 && cp old/e040/E040_QUERY_ONLY.jsonl old/e040/E040_RANKING_LOCK.json old/e040/E040_BLIND_RANKINGS.jsonl e040/
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0
+      - run: python3 -u pack.py | tee E040V2_pack.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E040-V2-AgentClinic-Expert-Pack
+          path: |
+            e040/
+            E040V2_pack.log
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E040-Rater-A-Blind-Only
+          path: |
+            e040/E040_RATER_A_BLIND_EXPERT_PACK.html
+            e040/E040_RATER_A_BLIND.jsonl
+            e040/E040_EXPERT_PROTOCOL_LOCK.json
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E040-Rater-B-Blind-Only
+          path: |
+            e040/E040_RATER_B_BLIND_EXPERT_PACK.html
+            e040/E040_RATER_B_BLIND.jsonl
+            e040/E040_EXPERT_PROTOCOL_LOCK.json
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E040-Internal-Answer-Keys
+          path: |
+            e040/E040_RATER_A_ANSWER_KEY.jsonl
+            e040/E040_RATER_B_ANSWER_KEY.jsonl
+            e040/E040_EXPERT_PROTOCOL_LOCK.json
+          retention-days: 30
