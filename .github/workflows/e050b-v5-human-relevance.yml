@@ -1,0 +1,55 @@
+name: E050B V5 Final PMC Human Relevance Validation
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e050b-v5-human-relevance.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Fetch immutable scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/3fd69498d199f3a515dc44ef247391dc371d064b/tools/e050b_prepare.py -o prepare.py
+          curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/3fd69498d199f3a515dc44ef247391dc371d064b/tools/e050b_score.py -o score.py
+          curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/3fd69498d199f3a515dc44ef247391dc371d064b/tools/e050b_eval.py -o eval.py
+      - run: gh run download 37257220411 -R AITCM/review-ai-skills -n E050A-PMC-Human-Mapping-Audit -D mapping
+      - run: gh run download 37201492370 -R AITCM/review-ai-skills -n E020-T001-Locked-Test -D t001
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - name: Phase 0 label-free cohort lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u prepare.py 2>&1 | tee E050B_prepare.log
+          test -s e050b/E050B_COHORT_LOCK.json
+      - name: Phase 1 frozen blind pair scoring
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u score.py 2>&1 | tee E050B_score.log
+          test -s e050b/E050B_SCORE_LOCK.json
+          test -s e050b/E050B_BLIND_PAIR_SCORES.jsonl
+      - name: Phase 2 locked human-label evaluation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u eval.py 2>&1 | tee E050B_eval.log
+          test -s e050b/E050B_HUMAN_RELEVANCE_RESULTS.json
+          test -s e050b/E050B_HUMAN_RELEVANCE_PAIRS.csv
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E050B-V5-Final-PMC-Human-Relevance
+          path: |
+            e050b/
+            E050B_prepare.log
+            E050B_score.log
+            E050B_eval.log
+          if-no-files-found: error
+          retention-days: 14
