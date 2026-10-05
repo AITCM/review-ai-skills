@@ -1,0 +1,22 @@
+name: E051A2 NCBI Article Mapping
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e051a2-ncbi-mapping.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e051a2_ncbi_mapping.py -o run.py
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0
+      - run: python3 -u run.py | tee E051A2.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E051A2-NCBI-Article-Mapping
+          path: |
+            e051a2/
+            E051A2.log
+          retention-days: 14
