@@ -92,6 +92,7 @@ pos=df[df.human_similar==1].rank_score_delta.to_numpy()
 negd=df[df.human_similar==0].rank_score_delta.to_numpy()
 selective=float(pos.mean()-negd.mean())
 boot=[]
+qids=sorted(df.query_index.unique())
 qids_arr=np.array(qids);q_to_pos={q:i for i,q in enumerate(qids_arr)}
 pair_qpos=np.array([q_to_pos[q] for q in df.query_index])
 yv=df.human_similar.to_numpy();dv=df.rank_score_delta.to_numpy(float)
