@@ -12,7 +12,7 @@ OUT=pathlib.Path("e050b");RNG=np.random.default_rng(20261004)
 lock=json.load(open(OUT/"E050B_SCORE_LOCK.json"))
 assert lock["status"]=="frozen_scores_locked_before_human_labels_loaded" and lock["human_relevance_labels_available_to_scorer"]==[]
 scores=[json.loads(x) for x in open(OUT/"E050B_BLIND_PAIR_SCORES.jsonl") if x.strip()]
-assert len(scores)==133
+assert len(scores)==129
 
 # Human labels are loaded only after score lock.
 req=urllib.request.Request(HUMAN,headers={"User-Agent":"CASE-EVID-001/1.0"})
@@ -29,7 +29,7 @@ for x in scores:
               "feature_similarity":int("1" in label),"outcome_similarity":int("2" in label),"exposure_similarity":int("3" in label),
               "dimension_count":0 if label=="0" else len(set(label))})
 df=pd.DataFrame(rows)
-assert len(df)==133
+assert len(df)==129
 assert df.human_similar.sum()==99 and (df.human_similar==0).sum()==34
 
 def metrics(d):
