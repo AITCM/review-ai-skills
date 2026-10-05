@@ -1,0 +1,22 @@
+name: E051A PMC Human Article Mapping
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e051a-pmc-article-mapping.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e051a_article_mapping.py -o run.py
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0
+      - run: python3 -u run.py | tee E051A.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E051A-PMC-Article-Mapping
+          path: |
+            e051a/
+            E051A.log
+          retention-days: 14
