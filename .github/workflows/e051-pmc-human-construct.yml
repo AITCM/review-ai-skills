@@ -2,7 +2,11 @@ name: E051 PMC Patients Human Construct Validation
 on:
   push:
     branches: ['data-tools/medcase-download-20261003']
-    paths: ['.github/workflows/e051-pmc-human-construct.yml']
+    paths:
+      - '.github/workflows/e051-pmc-human-construct.yml'
+      - 'tools/e051_prepare.py'
+      - 'tools/e051_score.py'
+      - 'tools/e051_evaluate.py'
 permissions:
   contents: read
 jobs:
@@ -17,11 +21,25 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e051_evaluate.py -o eval.py
       - run: python3 -m pip install --quiet pandas==2.2.3 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1 rank_bm25==0.2.2
       - name: Phase 0 text-only candidate lock
-        run: python3 -u prepare.py | tee E051_prepare.log
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u prepare.py 2>&1 | tee E051_prepare.log
+          test -s e051/E051_TEXT_LOCK.json
+          test -s e051/E051_CANDIDATE_TEXTS.csv
       - name: Phase 1 blind lexical scores
-        run: python3 -u score.py | tee E051_score.log
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u score.py 2>&1 | tee E051_score.log
+          test -s e051/E051_SCORE_LOCK.json
+          test -s e051/E051_BLIND_SCORES.csv
       - name: Phase 2 load human labels and evaluate
-        run: python3 -u eval.py | tee E051_eval.log
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u eval.py 2>&1 | tee E051_eval.log
+          test -s e051/E051_HUMAN_CONSTRUCT_VALIDATION.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: E051-PMC-Human-Construct-Validation
@@ -30,4 +48,5 @@ jobs:
             E051_prepare.log
             E051_score.log
             E051_eval.log
+          if-no-files-found: error
           retention-days: 14
