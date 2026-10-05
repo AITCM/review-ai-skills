@@ -1,0 +1,27 @@
+name: E070C DDXPlus Concentration Precision Audit
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e070c-ddxplus-audit.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e070c_ddxplus_audit.py -o run.py
+      - run: gh run download 37325315877 -R AITCM/review-ai-skills -n E070B-DDXPlus-CrossDomain -D locked
+      - run: gh run download 37249489722 -R AITCM/review-ai-skills -n E030-DDXPlus-English -D ddx
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6
+      - run: python3 -u run.py | tee E070C.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E070C-DDXPlus-Concentration-Precision
+          path: |
+            e070c/
+            E070C.log
+          retention-days: 14
