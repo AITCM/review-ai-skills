@@ -1,0 +1,20 @@
+name: E050 Quick Source Coverage
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e050-quick-coverage.yml']
+permissions:
+  contents: read
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e050_quick_coverage.py -o run.py
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0
+      - run: python3 -u run.py | tee E050_QUICK.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E050-Quick-Source-Coverage
+          path: E050_QUICK.json
+          retention-days: 7
