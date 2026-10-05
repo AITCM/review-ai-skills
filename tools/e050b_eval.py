@@ -46,15 +46,23 @@ def metrics(d):
 
 def with_cluster_bootstrap(d):
  res=metrics(d)
- qids=sorted(d.query_index.unique());ba=[];bp=[]
+ qids=np.array(sorted(d.query_index.unique()))
+ q_to_pos={q:i for i,q in enumerate(qids)}
+ pair_qpos=np.array([q_to_pos[q] for q in d.query_index])
+ y=d.human_similar.to_numpy()
+ sb=d.baseline_rank_score.to_numpy(float);sm=d.method_rank_score.to_numpy(float)
+ ba=[];bp=[]
  for _ in range(10000):
-  pick=RNG.choice(qids,size=len(qids),replace=True)
-  parts=[]
-  for new_i,q in enumerate(pick):
-   g=d[d.query_index==q].copy();g["_boot_cluster"]=new_i;parts.append(g)
-  bdf=pd.concat(parts,ignore_index=True)
-  if bdf.human_similar.nunique()<2:continue
-  m=metrics(bdf);ba.append(m["delta_AUROC_C2_minus_TFIDF"]);bp.append(m["delta_AP_C2_minus_TFIDF"])
+  pick=RNG.integers(0,len(qids),len(qids))
+  counts=np.bincount(pick,minlength=len(qids)).astype(float)
+  w=counts[pair_qpos]
+  keep=w>0
+  if len(np.unique(y[keep]))<2:continue
+  au_b=roc_auc_score(y[keep],sb[keep],sample_weight=w[keep])
+  au_m=roc_auc_score(y[keep],sm[keep],sample_weight=w[keep])
+  ap_b=average_precision_score(y[keep],sb[keep],sample_weight=w[keep])
+  ap_m=average_precision_score(y[keep],sm[keep],sample_weight=w[keep])
+  ba.append(float(au_m-au_b));bp.append(float(ap_m-ap_b))
  res["cluster_bootstrap_delta_AUROC_CI95"]=[float(np.percentile(ba,2.5)),float(np.percentile(ba,97.5))]
  res["cluster_bootstrap_delta_AP_CI95"]=[float(np.percentile(bp,2.5)),float(np.percentile(bp,97.5))]
  return res
@@ -84,13 +92,14 @@ pos=df[df.human_similar==1].rank_score_delta.to_numpy()
 negd=df[df.human_similar==0].rank_score_delta.to_numpy()
 selective=float(pos.mean()-negd.mean())
 boot=[]
+qids_arr=np.array(qids);q_to_pos={q:i for i,q in enumerate(qids_arr)}
+pair_qpos=np.array([q_to_pos[q] for q in df.query_index])
+yv=df.human_similar.to_numpy();dv=df.rank_score_delta.to_numpy(float)
 for _ in range(10000):
- pick=RNG.choice(qids,size=len(qids),replace=True)
- parts=[df[df.query_index==q] for q in pick]
- bdf=pd.concat(parts,ignore_index=True)
- p=bdf[bdf.human_similar==1].rank_score_delta
- n=bdf[bdf.human_similar==0].rank_score_delta
- if len(p) and len(n):boot.append(float(p.mean()-n.mean()))
+ pick=RNG.integers(0,len(qids_arr),len(qids_arr));counts=np.bincount(pick,minlength=len(qids_arr)).astype(float);w=counts[pair_qpos]
+ kp=(yv==1)&(w>0);kn=(yv==0)&(w>0)
+ if kp.any() and kn.any():
+  pm=np.average(dv[kp],weights=w[kp]);nm=np.average(dv[kn],weights=w[kn]);boot.append(float(pm-nm))
 
 # Very small within-query discrimination subset is reported but not inferentially emphasized.
 mixed=[]
