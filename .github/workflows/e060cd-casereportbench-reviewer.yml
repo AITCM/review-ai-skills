@@ -1,0 +1,43 @@
+name: E060C D CaseReportBench Reviewer Analyses
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e060cd-casereportbench-reviewer.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  category:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e060c_category.py -o run.py
+      - run: gh run download 37265410425 -R AITCM/review-ai-skills -n E060B-Frozen-C2-CaseReportBench -D locked
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 torch==2.7.1 sentence-transformers==5.1.1 huggingface_hub==0.35.1
+      - run: python3 -u run.py | tee E060C.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E060C-Category-Decomposition
+          path: |
+            e060c/
+            E060C.log
+          retention-days: 14
+  masked:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e060d_masked_query.py -o run.py
+      - run: gh run download 37201492370 -R AITCM/review-ai-skills -n E020-T001-Locked-Test -D t001
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1 torch==2.7.1 sentence-transformers==5.1.1 huggingface_hub==0.35.1
+      - run: python3 -u run.py | tee E060D.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E060D-Masked-Query-Sensitivity
+          path: |
+            e060d/
+            E060D.log
+          retention-days: 14
