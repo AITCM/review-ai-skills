@@ -1,0 +1,22 @@
+name: E031 QA External Near Duplicate Audit
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e031-qa-neardup.yml']
+permissions:
+  contents: read
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e031_qa_neardup.py -o qa.py
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scikit-learn==1.6.1
+      - run: python3 -u qa.py | tee E031_QA.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E031-QA-Near-Duplicate
+          path: |
+            e031-qa-output/
+            E031_QA.log
+          retention-days: 14
