@@ -19,13 +19,7 @@ jobs:
       - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0
       - run: python3 -u pack.py | tee E040V3_pack.log
       - name: Assert final protocol
-        run: python3 - <<'PY'
-import json
-x=json.load(open('e040/E040_EXPERT_PROTOCOL_LOCK.json'))
-assert x['cases_requiring_human_review']==117,x
-assert 'unordered' in x['primary_analysis_population'],x
-print(json.dumps(x,indent=2))
-PY
+        run: python3 -c "import json; x=json.load(open('e040/E040_EXPERT_PROTOCOL_LOCK.json')); assert x['cases_requiring_human_review']==117, x; assert 'unordered' in x['primary_analysis_population'], x; print(json.dumps(x,indent=2))"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: E040-V3-Final-Expert-Pack
