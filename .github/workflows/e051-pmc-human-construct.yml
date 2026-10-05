@@ -1,0 +1,33 @@
+name: E051 PMC Patients Human Construct Validation
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e051-pmc-human-construct.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Fetch scripts
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e051_prepare.py -o prepare.py
+          curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e051_score.py -o score.py
+          curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e051_evaluate.py -o eval.py
+      - run: python3 -m pip install --quiet pandas==2.2.3 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1 rank_bm25==0.2.2
+      - name: Phase 0 text-only candidate lock
+        run: python3 -u prepare.py | tee E051_prepare.log
+      - name: Phase 1 blind lexical scores
+        run: python3 -u score.py | tee E051_score.log
+      - name: Phase 2 load human labels and evaluate
+        run: python3 -u eval.py | tee E051_eval.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E051-PMC-Human-Construct-Validation
+          path: |
+            e051/
+            E051_prepare.log
+            E051_score.log
+            E051_eval.log
+          retention-days: 14
