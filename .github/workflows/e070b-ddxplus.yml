@@ -1,0 +1,55 @@
+name: E070B DDXPlus Cross Domain Stress Test
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e070b-ddxplus.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Fetch scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e070b_prepare.py -o prepare.py
+          curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e070b_rank.py -o rank.py
+          curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e070b_eval.py -o eval.py
+      - run: gh run download 37249489722 -R AITCM/review-ai-skills -n E030-DDXPlus-English -D ddx
+      - run: gh run download 37201492370 -R AITCM/review-ai-skills -n E020-T001-Locked-Test -D t001
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - name: Phase 0 outcome-blind sample and text-adapter lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u prepare.py 2>&1 | tee E070B_prepare.log
+          test -s e070b/E070B_QUERY_ONLY.jsonl
+          test -s e070b/E070B_QUERY_LOCK.json
+      - name: Phase 1 frozen blind ranking
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u rank.py 2>&1 | tee E070B_rank.log
+          test -s e070b/E070B_RANKING_LOCK.json
+          test -s e070b/E070B_BLIND_RANKINGS.jsonl
+      - name: Phase 2 load pathology and differential diagnosis after ranking lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u eval.py 2>&1 | tee E070B_eval.log
+          test -s e070b/E070B_DDXPLUS_RESULTS.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E070B-DDXPlus-CrossDomain
+          path: |
+            e070b/
+            E070B_prepare.log
+            E070B_rank.log
+            E070B_eval.log
+          if-no-files-found: error
+          retention-days: 14
