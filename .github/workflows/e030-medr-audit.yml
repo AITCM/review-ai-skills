@@ -1,0 +1,26 @@
+name: E030 MedRBench External Compatibility Audit
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e030-medr-audit.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e030_medr_audit.py -o audit.py
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0
+      - name: Execute
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u audit.py 2>&1 | tee E030.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E030-MedRBench-Compatibility-Audit
+          path: |
+            external-medr-audit/
+            E030.log
+          retention-days: 7
