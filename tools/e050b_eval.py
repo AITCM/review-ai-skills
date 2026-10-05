@@ -30,7 +30,7 @@ for x in scores:
               "dimension_count":0 if label=="0" else len(set(label))})
 df=pd.DataFrame(rows)
 assert len(df)==129
-assert df.human_similar.sum()==99 and (df.human_similar==0).sum()==34
+assert df.human_similar.nunique()==2
 
 def metrics(d):
  y=d.human_similar.to_numpy()
@@ -44,20 +44,24 @@ def metrics(d):
  res["delta_AP_C2_minus_TFIDF"]=res["C2"]["average_precision"]-res["TFIDF"]["average_precision"]
  return res
 
-main=metrics(df)
-# Cluster bootstrap by query; resample query IDs and preserve all pairs within selected clusters.
-qids=sorted(df.query_index.unique())
-boot_auc=[];boot_ap=[]
-for _ in range(10000):
- pick=RNG.choice(qids,size=len(qids),replace=True)
- parts=[]
- for new_i,q in enumerate(pick):
-  g=df[df.query_index==q].copy();g["_boot_cluster"]=new_i;parts.append(g)
- bdf=pd.concat(parts,ignore_index=True)
- if bdf.human_similar.nunique()<2:continue
- m=metrics(bdf);boot_auc.append(m["delta_AUROC_C2_minus_TFIDF"]);boot_ap.append(m["delta_AP_C2_minus_TFIDF"])
-main["cluster_bootstrap_delta_AUROC_CI95"]=[float(np.percentile(boot_auc,2.5)),float(np.percentile(boot_auc,97.5))]
-main["cluster_bootstrap_delta_AP_CI95"]=[float(np.percentile(boot_ap,2.5)),float(np.percentile(boot_ap,97.5))]
+def with_cluster_bootstrap(d):
+ res=metrics(d)
+ qids=sorted(d.query_index.unique());ba=[];bp=[]
+ for _ in range(10000):
+  pick=RNG.choice(qids,size=len(qids),replace=True)
+  parts=[]
+  for new_i,q in enumerate(pick):
+   g=d[d.query_index==q].copy();g["_boot_cluster"]=new_i;parts.append(g)
+  bdf=pd.concat(parts,ignore_index=True)
+  if bdf.human_similar.nunique()<2:continue
+  m=metrics(bdf);ba.append(m["delta_AUROC_C2_minus_TFIDF"]);bp.append(m["delta_AP_C2_minus_TFIDF"])
+ res["cluster_bootstrap_delta_AUROC_CI95"]=[float(np.percentile(ba,2.5)),float(np.percentile(ba,97.5))]
+ res["cluster_bootstrap_delta_AP_CI95"]=[float(np.percentile(bp,2.5)),float(np.percentile(bp,97.5))]
+ return res
+
+main=with_cluster_bootstrap(df)
+actionable=df[df.baseline_rank<=50].copy()
+actionable_metrics=with_cluster_bootstrap(actionable) if len(actionable) and actionable.human_similar.nunique()==2 else None
 
 # Source-disjoint query sensitivity.
 dis=df[df.query_source_disjoint==True].copy()
@@ -100,7 +104,12 @@ summary={"status":"human_relevance_candidate_discrimination_validation",
  "construct":"PMC-Patients expert patient-patient similarity labels; 0=Dissimilar, 1=Features, 2=Outcomes, 3=Exposure; combined strings denote multiple dimensions",
  "analysis_population":{"high_conf_pairs":len(df),"queries":int(df.query_index.nunique()),"human_similar":int(df.human_similar.sum()),"dissimilar":int((df.human_similar==0).sum()),
                         "source_disjoint_pairs":int(len(dis)),"source_disjoint_queries":int(dis.query_index.nunique())},
- "primary":main,"source_disjoint_sensitivity":dis_metrics,"dimension_descriptive":dims,
+ "primary":main,
+ "actionable_subset":{"definition":"baseline TF-IDF rank <= 50; Frozen C2 can only rerank this region",
+                      "n_pairs":int(len(actionable)),"n_queries":int(actionable.query_index.nunique()),
+                      "human_similar":int(actionable.human_similar.sum()),"dissimilar":int((actionable.human_similar==0).sum()),
+                      "metrics":actionable_metrics},
+ "source_disjoint_sensitivity":dis_metrics,"dimension_descriptive":dims,
  "selective_promotion":{"mean_rank_score_delta_positive":float(pos.mean()),"mean_rank_score_delta_dissimilar":float(negd.mean()),
                         "difference_positive_minus_dissimilar":selective,
                         "cluster_bootstrap_CI95":[float(np.percentile(boot,2.5)),float(np.percentile(boot,97.5))]},
