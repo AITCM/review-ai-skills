@@ -1,0 +1,48 @@
+name: E032B Sharded Independent External Evaluator
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e032b-sharded.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  shard:
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        shard: [0,1,2,3,4,5]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e032b_shard.py -o run.py
+      - run: gh run download 37250624477 -R AITCM/review-ai-skills -n E031-V2-Strict-MedRBench-External -D locked
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 torch==2.7.1 sentence-transformers==5.1.1 huggingface_hub==0.35.1
+      - run: python3 -u run.py --shard ${{ matrix.shard }} --nshards 6 --out out
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: shard-${{ matrix.shard }}
+          path: out/
+          retention-days: 14
+  aggregate:
+    needs: shard
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e032b_aggregate.py -o agg.py
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: shard-*
+          path: downloads
+      - run: python3 -m pip install --quiet numpy==2.2.6
+      - run: python3 -u agg.py | tee E032B.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E032B-Sharded-Independent-External
+          path: |
+            e032b-aggregate/
+            E032B.log
+          retention-days: 14
