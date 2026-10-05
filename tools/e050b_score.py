@@ -43,7 +43,7 @@ queries=[json.loads(x) for x in open(OUT/"E050B_QUERY_ONLY.jsonl",encoding="utf-
 pairs=[json.loads(x) for x in open(OUT/"E050B_HIGHCONF_PAIR_LOCK.jsonl",encoding="utf-8") if x.strip()]
 cohort=json.load(open(OUT/"E050B_COHORT_LOCK.json"))
 assert cohort["outcome_fields_in_scoring_lock"]==[]
-assert len(queries)==606 and len(pairs)==133
+assert len(queries)==606 and len(pairs)==129
 
 # Assert T001 method identity.
 locks=list(pathlib.Path("t001").rglob("T001_RANKING_LOCK.json"));assert len(locks)==1
