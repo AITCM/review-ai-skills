@@ -1,0 +1,29 @@
+name: E040 Interactive Rater Packs
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e040-interactive.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e040_interactive.py -o ui.py
+      - run: gh run download 37255632667 -R AITCM/review-ai-skills -n E040-V3-Rater-A-Blind -D A
+      - run: gh run download 37255632667 -R AITCM/review-ai-skills -n E040-V3-Rater-B-Blind -D B
+      - run: python3 ui.py --input A/E040_RATER_A_BLIND.jsonl --rater RATER_A --out E040_RATER_A_INTERACTIVE.html
+      - run: python3 ui.py --input B/E040_RATER_B_BLIND.jsonl --rater RATER_B --out E040_RATER_B_INTERACTIVE.html
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E040-Interactive-Rater-A
+          path: E040_RATER_A_INTERACTIVE.html
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E040-Interactive-Rater-B
+          path: E040_RATER_B_INTERACTIVE.html
+          retention-days: 30
