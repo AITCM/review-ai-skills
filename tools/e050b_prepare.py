@@ -42,20 +42,26 @@ for qi,q in enumerate(data):
     # use only dict KEYS here; label values are intentionally not emitted.
     for uid in q["similar_patients"].keys():
         if str(uid) in uid_to_idx:
+            cpm=uid_pmc(uid)
+            # Predefined source-leakage exclusion: candidate from same PMC source article as query.
+            if cpm==qpm:
+                continue
             pairs.append({"query_index":qi,"query_uid":q["human_patient_uid"],"candidate_uid":str(uid),
-                          "candidate_pmcid":uid_pmc(uid),"medcase_train_index":uid_to_idx[str(uid)]})
-assert len(pairs)==133
+                          "candidate_pmcid":cpm,"medcase_train_index":uid_to_idx[str(uid)]})
+assert len(pairs)==129
 with (OUT/"E050B_QUERY_ONLY.jsonl").open("w",encoding="utf-8") as f:
     for x in queries:f.write(json.dumps(x,ensure_ascii=False)+"\n")
 with (OUT/"E050B_HIGHCONF_PAIR_LOCK.jsonl").open("w",encoding="utf-8") as f:
     for x in pairs:f.write(json.dumps(x,ensure_ascii=False)+"\n")
 lock={"status":"human_relevance_labels_removed_before_scoring",
-      "n_queries":len(queries),"n_highconf_pairs":len(pairs),"n_unique_candidates":len(set(x["candidate_uid"] for x in pairs)),
+      "n_queries":len(queries),"n_highconf_pairs":len(pairs),"n_pair_queries":len(set(x["query_index"] for x in pairs)),
+      "n_unique_candidates":len(set(x["candidate_uid"] for x in pairs)),
       "query_source_disjoint_count":sum(x["source_disjoint_from_all_medcase"] for x in queries),
       "pair_queries_source_disjoint_count":len(set(x["query_index"] for x in pairs if queries[x["query_index"]]["source_disjoint_from_all_medcase"])),
       "human_eval_revision":META_REV,"human_eval_source_sha256":hashlib.sha256(raw).hexdigest(),
       "medcasereasoning_revision":MC_REV,
       "outcome_fields_in_scoring_lock":[],
-      "high_conf_mapping_rule":"single-patient source article OR unique best text match with char5 margin >=0.05"}
+      "high_conf_mapping_rule":"single-patient source article OR unique best text match with char5 margin >=0.05",
+      "same_source_query_candidate_pairs_excluded":4}
 (OUT/"E050B_COHORT_LOCK.json").write_text(json.dumps(lock,indent=2)+"\n")
 print(json.dumps(lock,indent=2))
