@@ -29,7 +29,8 @@ for qi,q in enumerate(human):
  queries.append({"query_index":qi,"query_uid":q["human_patient_uid"],"query_text":q["patient"],"candidate_uids":cands})
 with (OUT/"E051_TEXT_ONLY_QUERY_CANDIDATE_LOCK.jsonl").open("w",encoding="utf-8") as f:
  for x in queries:f.write(json.dumps(x,ensure_ascii=False)+"\n")
-assert all("label" not in json.dumps(x).lower() for x in queries)
+assert all(set(x)=={"query_index","query_uid","query_text","candidate_uids"} for x in queries)
+assert all(not any(k in x for k in ["similar_patients","relevant_articles","answers","label","gold"]) for x in queries)
 
 # Download pinned original PMC-Patients CSV and verify immutable content hash.
 p=pathlib.Path("PMC-Patients.csv")
