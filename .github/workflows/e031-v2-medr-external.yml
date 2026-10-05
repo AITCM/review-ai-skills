@@ -2,7 +2,11 @@ name: E031 V2 Strict MedRBench External Validation
 on:
   push:
     branches: ['data-tools/medcase-download-20261003']
-    paths: ['.github/workflows/e031-v2-medr-external.yml']
+    paths:
+      - '.github/workflows/e031-v2-medr-external.yml'
+      - 'tools/e031_v2_prepare_queries.py'
+      - 'tools/e031_v2_rank.py'
+      - 'tools/e031_v2_eval.py'
 permissions:
   contents: read
   actions: read
