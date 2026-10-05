@@ -1,0 +1,30 @@
+name: E060A V2 CaseReportBench Compatibility Audit
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e060a-v2-casereportbench-audit.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/01d414cd6699ba8411c68a87d17e6e4d3cf7a33b/tools/e060a_crb_audit.py -o run.py
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6
+      - name: Execute hardened compatibility audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u run.py 2>&1 | tee E060A.log
+          test -s e060a/E060A_COMPATIBILITY_SUMMARY.json
+          test -s e060a/E060A_CASE_AUDIT.csv
+          test -s e060a/E060A_SCHEMA_EXAMPLES.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E060A-V2-CaseReportBench-Compatibility-Audit
+          path: |
+            e060a/
+            E060A.log
+          if-no-files-found: error
+          retention-days: 14
