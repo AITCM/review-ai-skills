@@ -1,0 +1,70 @@
+name: E030 Split DDXPlus For Drive
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e030-ddx-split.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  split:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download already-verified DDXPlus artifact
+        run: gh run download 37249489722 -R AITCM/review-ai-skills -n E030-DDXPlus-English -D src
+      - name: Verify and split large training archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s src/SOURCE_MANIFEST.json
+          test -s src/release_train_patients.zip
+          mkdir -p small train_parts
+          cp src/{FIGSHARE_ARTICLE_METADATA.json,LICENSE_NOTE.txt,README.md,CITATION.cff,SOURCE_MANIFEST.json,release_conditions.json,release_evidences.json,release_validate_patients.zip,release_test_patients.zip} small/
+          python3 - <<'PY'
+          import json,hashlib,pathlib
+          p=pathlib.Path('src/release_train_patients.zip')
+          m=json.load(open('src/SOURCE_MANIFEST.json'))
+          rec=next(x for x in m['files'] if x['name']=='release_train_patients.zip')
+          h=hashlib.sha256(p.read_bytes()).hexdigest()
+          assert h==rec['sha256'],(h,rec['sha256'])
+          size=60_000_000
+          data=p.open('rb');parts=[];i=0
+          while True:
+              b=data.read(size)
+              if not b:break
+              name=f'release_train_patients.zip.part-{i:02d}'
+              q=pathlib.Path('train_parts')/name;q.write_bytes(b)
+              parts.append({'name':name,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()})
+              i+=1
+          note='Reassemble in binary order part-00, part-01, ... to recreate release_train_patients.zip.\nOriginal bytes: %d\nOriginal SHA256: %s\n' % (p.stat().st_size,h)
+          pathlib.Path('small/REASSEMBLY.txt').write_text(note)
+          pathlib.Path('small/TRAIN_PARTS_MANIFEST.json').write_text(json.dumps({'original_name':p.name,'original_bytes':p.stat().st_size,'original_sha256':h,'parts':parts},indent=2)+'\n')
+          print(json.dumps(parts,indent=2))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E030-DDXPlus-Small-Files
+          path: small/
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E030-DDXPlus-Train-Part00
+          path: train_parts/release_train_patients.zip.part-00
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E030-DDXPlus-Train-Part01
+          path: train_parts/release_train_patients.zip.part-01
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E030-DDXPlus-Train-Part02
+          path: train_parts/release_train_patients.zip.part-02
+          compression-level: 0
+          retention-days: 7
