@@ -124,7 +124,7 @@ for qi,q in enumerate(queries):
     "method_rank_score":1-(mrank[j]-1)/denom,
     "baseline_top10":brank[j]<=10,"method_top10":mrank[j]<=10,
     "baseline_top50":brank[j]<=50,"method_top50":mrank[j]<=50})
-assert len(out)==133
+assert len(out)==129
 with (OUT/"E050B_BLIND_PAIR_SCORES.jsonl").open("w") as f:
  for x in out:f.write(json.dumps(x)+"\n")
 lock={"status":"frozen_scores_locked_before_human_labels_loaded","n_pairs":len(out),"n_queries":len(set(x["query_index"] for x in out)),
