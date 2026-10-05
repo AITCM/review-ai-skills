@@ -1,0 +1,59 @@
+name: E040 V3 Final AgentClinic Expert Pack
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e040-v3-pack.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  pack:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/d4e6b73f6cba019e80c8e7052b083ea597137c0c/tools/e040_pack.py -o pack.py
+      - run: gh run download 37255292221 -R AITCM/review-ai-skills -n E040-AgentClinic-NEJM-Blinded-Expert-Pack -D old
+      - run: mkdir -p e040 && cp old/e040/E040_QUERY_ONLY.jsonl old/e040/E040_RANKING_LOCK.json old/e040/E040_BLIND_RANKINGS.jsonl e040/
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0
+      - run: python3 -u pack.py | tee E040V3_pack.log
+      - name: Assert final protocol
+        run: python3 - <<'PY'
+import json
+x=json.load(open('e040/E040_EXPERT_PROTOCOL_LOCK.json'))
+assert x['cases_requiring_human_review']==117,x
+assert 'unordered' in x['primary_analysis_population'],x
+print(json.dumps(x,indent=2))
+PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E040-V3-Final-Expert-Pack
+          path: |
+            e040/
+            E040V3_pack.log
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E040-V3-Rater-A-Blind
+          path: |
+            e040/E040_RATER_A_BLIND_EXPERT_PACK.html
+            e040/E040_RATER_A_BLIND.jsonl
+            e040/E040_EXPERT_PROTOCOL_LOCK.json
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E040-V3-Rater-B-Blind
+          path: |
+            e040/E040_RATER_B_BLIND_EXPERT_PACK.html
+            e040/E040_RATER_B_BLIND.jsonl
+            e040/E040_EXPERT_PROTOCOL_LOCK.json
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E040-V3-Internal-Keys
+          path: |
+            e040/E040_RATER_A_ANSWER_KEY.jsonl
+            e040/E040_RATER_B_ANSWER_KEY.jsonl
+            e040/E040_EXPERT_PROTOCOL_LOCK.json
+          retention-days: 30
