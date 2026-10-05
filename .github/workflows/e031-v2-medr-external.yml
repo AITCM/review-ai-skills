@@ -1,0 +1,53 @@
+name: E031 V2 Strict MedRBench External Validation
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e031-v2-medr-external.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  external:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Fetch pinned scripts
+        shell: bash
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e031_v2_prepare_queries.py -o prepare.py
+          curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e031_v2_rank.py -o rank.py
+          curl -fsSL https://raw.githubusercontent.com/AITCM/review-ai-skills/data-tools/medcase-download-20261003/tools/e031_v2_eval.py -o eval.py
+      - name: Download original T001 lock only
+        run: gh run download 37201492370 -R AITCM/review-ai-skills -n E020-T001-Locked-Test -D t001
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - name: Phase 0 - build source-disjoint query-only cohort
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u prepare.py 2>&1 | tee E031V2_prepare.log
+          test -s e031-v2/E031V2_QUERY_ONLY.jsonl
+          test -s e031-v2/E031V2_QUERY_LOCK.json
+      - name: Phase 1 - blind external ranking
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u rank.py 2>&1 | tee E031V2_rank.log
+          test -s e031-v2/E031V2_RANKING_LOCK.json
+          test -s e031-v2/E031V2_BLIND_RANKINGS.jsonl
+      - name: Phase 2 - load external outcomes only after ranking lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u eval.py 2>&1 | tee E031V2_eval.log
+          test -s e031-v2/E031V2_EXTERNAL_RESULTS.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E031-V2-Strict-MedRBench-External
+          path: |
+            e031-v2/
+            E031V2_prepare.log
+            E031V2_rank.log
+            E031V2_eval.log
+          retention-days: 14
