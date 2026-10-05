@@ -66,7 +66,7 @@ A=make_pack(SALT_A,"RATER_A");B=make_pack(SALT_B,"RATER_B")
 def render(pack,label):
  rows=[]
  for rec in pack:
-  if rec["same_ordered_top3"]: continue
+  if rec["same_unordered_top3"]: continue
   def evidence_html(items):
    z=[]
    for x in items:
@@ -96,9 +96,9 @@ render(A,"RATER_A");render(B,"RATER_B")
 
 summary={"status":"expert_pairwise_pack_locked","n_cases":120,"top_k":3,
  "same_ordered_top3":same_order,"same_unordered_top3":same_set,
- "cases_requiring_human_review":120-same_order,
+ "cases_requiring_human_review":120-same_set,
  "rater_randomization":{"RATER_A":SALT_A,"RATER_B":SALT_B},
- "primary_analysis_population":"all cases with non-identical ordered Top-3 evidence sets",
+ "primary_analysis_population":"all cases with non-identical unordered Top-3 evidence sets",
  "primary_outcome":"blinded pairwise preference for diagnostic reasoning utility",
  "predefined_choices":["A clearly better","A slightly better","About equal","B slightly better","B clearly better","Neither useful"],
  "secondary_fields":["confidence_1_to_5","misleading_evidence_A_B_both_neither","free_text_comment"],
@@ -107,7 +107,7 @@ summary={"status":"expert_pairwise_pack_locked","n_cases":120,"top_k":3,
   "Report rater-specific C2 win/loss/tie counts and ordinal preference distributions.",
   "Primary consensus endpoint: C2 preferred vs TF-IDF preferred among adjudicated non-tie cases; report exact binomial 95% CI/test.",
   "Report agreement before adjudication; use a third clinician only for discordant directional preferences.",
-  "Structural identical ordered Top-3 cases are recorded as automatic ties and are not manually rated."
+  "Cases with identical unordered Top-3 evidence sets are recorded as automatic ties and are not manually rated."
  ],
  "target_gold_explicit_count":sum(x["target_gold_explicit_in_query"] for x in records),
  "note":"No human labels have been collected yet; this artifact is a locked blinded evaluation instrument."}
