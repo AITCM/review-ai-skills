@@ -17,7 +17,13 @@ def norm(s):
  return " ".join(re.findall(r"\w+",s))
 def words(s): return len(re.findall(r"\b\w+\b",str(s)))
 def nonempty(v):
- if pd.isna(v):return False
+ if isinstance(v,(list,tuple,np.ndarray)):
+  return any(nonempty(x) for x in list(v))
+ if v is None:return False
+ try:
+  if bool(pd.isna(v)):return False
+ except Exception:
+  pass
  s=str(v).strip()
  return bool(s and s.lower() not in {"nan","none","[]","{}","null","n/a","na"})
 def mask_diag(text,diag):
