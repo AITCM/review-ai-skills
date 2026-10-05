@@ -46,7 +46,9 @@ assert [x["query_index"] for x in queries]==list(range(840))
 ext=pd.DataFrame(queries)
 
 # Assert method identity against the original one-shot T001 lock.
-t001=json.load(open("t001/T001_RANKING_LOCK.json"))
+locks=list(pathlib.Path("t001").rglob("T001_RANKING_LOCK.json"))
+assert len(locks)==1,locks
+t001=json.load(open(locks[0]))
 expected={
  "seed":SEED,"case_svd_dim":CASE_DIM,"reasoning_svd_dim":REASON_DIM,"ridge_alpha":RIDGE_ALPHA,
  "training_candidate_k":TRAIN_K,"utility_margin":MARGIN,"deployment_candidate_k":DEPLOY_K,
