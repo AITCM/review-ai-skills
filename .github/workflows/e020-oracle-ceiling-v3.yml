@@ -1,0 +1,40 @@
+name: E020 O1 Oracle Candidate Ceiling v3
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e020-oracle-ceiling-v3.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  oracle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: data-tools/medcase-download-20261003
+      - name: Install pinned analysis dependencies
+        run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - name: Download immutable T001 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/AITCM/review-ai-skills/actions/artifacts/11303196366/zip \
+            -o t001_artifact.zip
+          sha256sum t001_artifact.zip | tee T001_ARTIFACT_SHA256.txt
+      - name: Run post-test oracle ceiling audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u tools/e020_oracle_ceiling.py 2>&1 | tee E020_O1.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: E020-O1-Oracle-Candidate-Ceiling-v3
+          path: |
+            oracle-output/
+            E020_O1.log
+            T001_ARTIFACT_SHA256.txt
+          retention-days: 30
