@@ -139,9 +139,9 @@ for bno,(qa,qb) in enumerate(batches,1):
         global_order=np.lexsort((all_ids,-util))
         gbest=int(global_order[0]);tbest=int(top50_oracle_order[0])
 
-        # true lexical rank of globally best single-case utility candidate
-        cs=case_scores[i];v=float(cs[gbest])
-        lexrank=1+int(np.sum(cs>v))+int(np.sum((cs==v)&(all_ids<gbest)))
+        # Position is read only from the immutable T001 baseline Top-50.
+        where=np.where(base==gbest)[0]
+        locked_pos=int(where[0]+1) if len(where) else None
 
         row={"query_index":i,"global_best_single_train_index":gbest,
              "global_best_single_utility":float(util[gbest]),
