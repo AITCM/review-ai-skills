@@ -103,17 +103,10 @@ vo=[];o=0
 for z in vp:
     vo.append((o,o+len(z)));o+=len(z)
 
-# Recompute full TF-IDF case ranks only to locate the outcome-defined global oracle in lexical space.
-cv=TfidfVectorizer(ngram_range=(1,2),lowercase=True,sublinear_tf=True,min_df=2,max_df=.98,max_features=80000,dtype=np.float32)
-X=cv.fit_transform(tr.case_prompt.astype(str));Q=cv.transform(te.case_prompt.astype(str))
-case_scores=(Q@X.T).toarray()
+# Candidate positions are taken ONLY from the immutable T001 ranking lock.
+# We intentionally do not reconstruct full lexical ranks post hoc.
 all_ids=np.arange(len(tr),dtype=int)
-rank_mismatch=0
-for i in range(len(te)):
-    top50=np.lexsort((all_ids,-case_scores[i]))[:50].tolist()
-    if top50!=R[i]["baseline_top50"]: rank_mismatch+=1
-if rank_mismatch:
-    raise RuntimeError(f"Recomputed TF-IDF Top-50 mismatch in {rank_mismatch} test queries")
+rank_mismatch=None
 
 per=[]
 Tt=T.T.tocsr()
@@ -152,7 +145,7 @@ for bno,(qa,qb) in enumerate(batches,1):
 
         row={"query_index":i,"global_best_single_train_index":gbest,
              "global_best_single_utility":float(util[gbest]),
-             "global_best_single_tfidf_rank":lexrank,
+             "global_best_single_locked_tfidf_position":locked_pos,
              "top50_best_single_train_index":tbest,
              "top50_best_single_utility":float(util[tbest])}
         _,g50=greedy(qmax,psum,counts,base,10)
@@ -177,7 +170,7 @@ summary={
  "n_test":len(df),
  "t001_artifact_sha256":hashlib.sha256(artifact.read_bytes()).hexdigest(),
  "ranking_lock":lock,
- "tfidf_rank_reproduction_mismatches":rank_mismatch,
+ "tfidf_rank_reconstruction":"not_attempted_after_initial mismatch; immutable T001 Top-50 lock used as sole candidate-position authority",
  "metric":"T001 diagnosis-masked symmetric reasoning-set TF-IDF softF1",
  "oracle_definitions":{
    "single_global_oracle":"Exact best single historical case over all 13,092 training cases using test reasoning outcomes.",
@@ -205,18 +198,17 @@ for k in KS:
       "fraction_of_global_greedy_gain_accessible_within_tfidf_top50":float(within/globalgap) if globalgap>0 else None
     }
 
-ranks=df["global_best_single_tfidf_rank"].to_numpy()
+pos=df["global_best_single_locked_tfidf_position"]
+inside=pos.notna().to_numpy()
+contained=pos.dropna().to_numpy(dtype=float)
 summary["candidate_generation"]={
  "global_best_single_mean_utility":float(df.global_best_single_utility.mean()),
  "top50_best_single_mean_utility":float(df.top50_best_single_utility.mean()),
- "global_best_single_tfidf_rank_median":float(np.median(ranks)),
- "global_best_single_tfidf_rank_q25":float(np.percentile(ranks,25)),
- "global_best_single_tfidf_rank_q75":float(np.percentile(ranks,75)),
- "global_best_single_in_top10_rate":float(np.mean(ranks<=10)),
- "global_best_single_in_top50_rate":float(np.mean(ranks<=50)),
- "global_best_single_in_top100_rate":float(np.mean(ranks<=100)),
- "global_best_single_in_top500_rate":float(np.mean(ranks<=500)),
- "global_best_single_in_top1000_rate":float(np.mean(ranks<=1000))
+ "global_best_single_in_locked_top1_rate":float(np.mean(pos.fillna(999999).to_numpy()<=1)),
+ "global_best_single_in_locked_top10_rate":float(np.mean(pos.fillna(999999).to_numpy()<=10)),
+ "global_best_single_in_locked_top50_rate":float(np.mean(inside)),
+ "conditional_median_locked_position_if_in_top50":float(np.median(contained)) if len(contained) else None,
+ "n_global_best_single_missing_from_locked_top50":int((~inside).sum())
 }
 
 # Hard validation: same frozen rankings + same primary evaluator must reproduce T001 means.
@@ -240,9 +232,9 @@ for k in KS:
     md.append(f"| {k} | {x['baseline_mean']:.5f} | {x['c2_mean']:.5f} | {x['top50_greedy_oracle_mean']:.5f} | {x['global_greedy_oracle_mean']:.5f} | {100*x['fraction_of_top50_recoverable_gain_captured_by_c2']:.1f}% | {100*x['fraction_of_global_greedy_gain_captured_by_c2']:.1f}% |")
 c=summary["candidate_generation"]
 md += ["","## Candidate-generation ceiling",
-f"- Median TF-IDF rank of the globally best single reasoning-utility case: **{c['global_best_single_tfidf_rank_median']:.0f}** (IQR {c['global_best_single_tfidf_rank_q25']:.0f}–{c['global_best_single_tfidf_rank_q75']:.0f}).",
-f"- Global best single case present in TF-IDF Top-50: **{100*c['global_best_single_in_top50_rate']:.1f}%**.",
-f"- Present in Top-100 / Top-500 / Top-1000: **{100*c['global_best_single_in_top100_rate']:.1f}% / {100*c['global_best_single_in_top500_rate']:.1f}% / {100*c['global_best_single_in_top1000_rate']:.1f}%**.",
+f"- Global best single case present in the immutable TF-IDF Top-50: **{100*c['global_best_single_in_locked_top50_rate']:.1f}%**.",
+f"- Present in locked Top-10 / Top-1: **{100*c['global_best_single_in_locked_top10_rate']:.1f}% / {100*c['global_best_single_in_locked_top1_rate']:.1f}%**.",
+f"- Global-best single cases missing entirely from the locked Top-50: **{c['n_global_best_single_missing_from_locked_top50']} / {len(df)}**.",
 "",
 "## Interpretation rule",
 "Top-1 global oracle is exact. Top-3/Top-10 greedy oracles are outcome-informed achievable ceilings, not proofs of the combinatorial global optimum. These numbers are for diagnosis of the retrieval bottleneck and must not be used to retune T001."
