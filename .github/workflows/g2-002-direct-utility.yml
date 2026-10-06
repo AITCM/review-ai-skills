@@ -1,0 +1,28 @@
+name: G2 002 Direct Utility Retriever
+on:
+  push:
+    branches: ['method/g2-utility-retrieval-20261006']
+    paths: ['.github/workflows/g2-002-direct-utility.yml']
+permissions:
+  contents: read
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: method/g2-utility-retrieval-20261006
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - name: Run G2-002
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u tools/g2_002_direct_utility_retriever.py 2>&1 | tee G2_002.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: G2-002-Direct-Utility-Retriever
+          path: |
+            g2-002-output/
+            G2_002.log
+          retention-days: 30
