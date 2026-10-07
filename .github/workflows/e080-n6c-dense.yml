@@ -1,0 +1,30 @@
+name: E080 N6C Independent Dense
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e080-n6c-dense.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  dense:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: data-tools/medcase-download-20261003
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1 torch==2.7.1 sentence-transformers==5.1.1 huggingface_hub==0.35.1
+      - name: Download immutable N6C rankings
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: curl -fL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" https://api.github.com/repos/AITCM/review-ai-skills/actions/artifacts/11487279237/zip -o n6c_artifact.zip
+      - run: python3 -u tools/e080_n6c_independent_dense.py 2>&1 | tee E080_N6C_DENSE.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: E080-N6C-Independent-Dense
+          path: |
+            e080-n6c-independent-output/
+            E080_N6C_DENSE.log
+          retention-days: 30
