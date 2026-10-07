@@ -1,4 +1,4 @@
-name: E080 N6 Set Aware Utility Policy
+name: E080 N6 Set Aware Utility Policy v2
 on:
   push:
     branches: ['data-tools/medcase-download-20261003']
