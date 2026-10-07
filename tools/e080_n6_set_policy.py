@@ -41,7 +41,7 @@ def rank(scores,k=POOL_K):
     ids=np.arange(len(scores),dtype=int)
     return np.lexsort((ids,-np.asarray(scores)))[:k]
 def set_u(qmax,psum,counts,ids):
-    if not ids:return 0.0
+    if len(ids)==0:return 0.0
     ids=np.asarray(ids,dtype=int)
     rec=float(np.max(qmax[:,ids],axis=1).mean())
     prec=float(psum[ids].sum()/counts[ids].sum())
