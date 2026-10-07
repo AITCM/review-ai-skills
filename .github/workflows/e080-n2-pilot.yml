@@ -1,0 +1,32 @@
+name: E080 N2 Pilot Ranker
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e080-n2-pilot.yml']
+permissions:
+  contents: read
+jobs:
+  pilot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      E080_N2_META_MAX: "600"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: data-tools/medcase-download-20261003
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - name: Run deterministic 600-query train-only pilot
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u tools/e080_n2_ranker.py 2>&1 | tee E080_N2_PILOT.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: E080-N2-Pilot-600
+          path: |
+            e080-n2-output/
+            E080_N2_PILOT.log
+          if-no-files-found: error
+          retention-days: 30
