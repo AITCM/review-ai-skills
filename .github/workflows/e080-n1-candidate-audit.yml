@@ -1,4 +1,4 @@
-name: E080 N1 Candidate Generator Audit
+name: E080 N1 Candidate Generator Audit v2
 on:
   push:
     branches: ['data-tools/medcase-download-20261003']
