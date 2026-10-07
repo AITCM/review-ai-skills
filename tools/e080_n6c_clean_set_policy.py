@@ -12,7 +12,7 @@ BASE="https://huggingface.co/datasets/zou-lab/MedCaseReasoning/resolve/"+REV+"/d
 OUT=pathlib.Path("e080-n6c-output");OUT.mkdir(exist_ok=True)
 SEED=20261007;POOL_K=100;MAX_K=10;KS=(1,3,10)
 PAT=re.compile(r'^\s*(?:\((\d+)\)|(\d+)[.)])\s*',re.M)
-FEATURES=["lex","case_latent","pred_reason","lex_rr","step_frac","current_u",
+FEATURES=["lex","case_latent","pred_reason","lex_rr","step_frac",
           "max_case_red","mean_case_red","max_reason_red","mean_reason_red",
           "reason_novelty","lex_x_novelty","pred_x_novelty"]
 
@@ -74,9 +74,9 @@ def candidate_features(pool,lex,lat,pred,lex_rank,step,selected,case_emb,reason_
         max_reas=np.zeros(len(pool),np.float32);mean_reas=max_reas.copy()
     nov=1.0-max_reas
     rr=np.asarray([1.0/(1.0+lex_rank[int(j)]) for j in pool],np.float32)
-    sf=np.full(len(pool),step/MAX_K,np.float32);cu=np.full(len(pool),current_u,np.float32)
+    sf=np.full(len(pool),step/MAX_K,np.float32)
     return np.column_stack([
-        lex[pool],lat[pool],pred[pool],rr,sf,cu,
+        lex[pool],lat[pool],pred[pool],rr,sf,
         max_case,mean_case,max_reas,mean_reas,nov,
         lex[pool]*nov,pred[pool]*nov
     ]).astype(np.float32)
