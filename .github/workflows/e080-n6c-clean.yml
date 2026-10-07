@@ -1,4 +1,4 @@
-name: E080 N6C Leakage Free Set Policy
+name: E080 N6C Leakage Free Set Policy v2
 on:
   push:
     branches: ['data-tools/medcase-download-20261003']
