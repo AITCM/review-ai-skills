@@ -1,0 +1,29 @@
+name: E080 N8c Char Robustness
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e080-n8c-char.yml']
+permissions:
+  contents: read
+jobs:
+  n8c:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: data-tools/medcase-download-20261003
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u tools/e080_n8c_char_eval.py 2>&1 | tee E080_N8C.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: E080-N8c-Char
+          path: |
+            e080-n8c-output/
+            E080_N8C.log
+          if-no-files-found: error
+          retention-days: 30
