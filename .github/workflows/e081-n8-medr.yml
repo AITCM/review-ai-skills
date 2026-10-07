@@ -1,0 +1,46 @@
+name: E081 N8 Frozen MedRBench External Validation
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e081-n8-medr.yml']
+permissions:
+  contents: read
+jobs:
+  external:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: data-tools/medcase-download-20261003
+      - run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - name: Phase 0 - lock source-disjoint query-only cohort
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u tools/e081_prepare_queries.py 2>&1 | tee E081_prepare.log
+          test -s e081-n8-medr/E081_QUERY_ONLY.jsonl
+      - name: Phase 1 - freeze N8 rankings without outcomes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u tools/e081_n8_rank.py 2>&1 | tee E081_rank.log
+          test -s e081-n8-medr/E081_RANKING_LOCK.json
+          test -s e081-n8-medr/E081_BLIND_RANKINGS.jsonl
+      - name: Phase 2 - load outcomes after ranking lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u tools/e081_n8_eval.py 2>&1 | tee E081_eval.log
+          test -s e081-n8-medr/E081_EXTERNAL_RESULTS.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: E081-N8-Frozen-MedRBench-External
+          path: |
+            e081-n8-medr/
+            E081_prepare.log
+            E081_rank.log
+            E081_eval.log
+          if-no-files-found: error
+          retention-days: 30
