@@ -1,4 +1,4 @@
-name: E080 N6C Char Robustness
+name: E080 N6C Char Robustness v2
 on:
   push:
     branches: ['data-tools/medcase-download-20261003']
@@ -18,7 +18,11 @@ jobs:
       - name: Download immutable N6C rankings
         env:
           GH_TOKEN: ${{ github.token }}
-        run: curl -fL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" https://api.github.com/repos/AITCM/review-ai-skills/actions/artifacts/11487279237/zip -o n6c_artifact.zip
+        run: |
+          set -euo pipefail
+          curl -fL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/AITCM/review-ai-skills/actions/artifacts/11487279237/zip \
+            -o n6c_artifact.zip
       - run: python3 -u tools/e080_n6c_char_eval.py 2>&1 | tee E080_N6C_CHAR.log
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
