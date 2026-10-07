@@ -1,0 +1,31 @@
+name: E021 N1 Candidate Generation Audit
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e021-n1-candidate-audit.yml']
+permissions:
+  contents: read
+jobs:
+  n1:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: data-tools/medcase-download-20261003
+      - name: Install pinned dependencies
+        run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0 numpy==2.2.6 scipy==1.15.3 scikit-learn==1.6.1
+      - name: Run fixed-budget candidate audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u tools/e021_n1_candidate_audit.py 2>&1 | tee E021_N1_run.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: E021-N1-Candidate-Audit
+          path: |
+            e021-n1-output/
+            E021_N1_run.log
+          if-no-files-found: error
+          retention-days: 30
