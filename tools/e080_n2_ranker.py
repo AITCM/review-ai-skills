@@ -1,5 +1,5 @@
 from __future__ import annotations
-import json,re,unicodedata,pathlib,hashlib
+import json,re,unicodedata,pathlib,hashlib,os
 from collections import defaultdict
 import numpy as np,pandas as pd
 from scipy.sparse import vstack
@@ -89,6 +89,11 @@ va=pd.read_parquet(BASE+"/val-00000-of-00001.parquet")[["pmcid","case_prompt","d
 assert len(tr)==13092 and len(va)==500
 isdev=np.array([int(hashlib.sha256(("E080-N2:"+str(x)).encode()).hexdigest()[:8],16)%5==0 for x in tr.pmcid])
 ref=tr.loc[~isdev].reset_index(drop=True);mq=tr.loc[isdev].reset_index(drop=True)
+META_MAX=int(os.getenv("E080_N2_META_MAX","0"))
+if META_MAX>0 and len(mq)>META_MAX:
+    # deterministic pilot subset; never selected using validation outcomes
+    key=np.array([int(hashlib.sha256(("E080-N2-PILOT:"+str(x)).encode()).hexdigest()[:16],16) for x in mq.pmcid],dtype=np.uint64)
+    mq=mq.iloc[np.argsort(key)[:META_MAX]].reset_index(drop=True)
 
 # ---------- train rankers on a train-only meta split ----------
 cv=TfidfVectorizer(ngram_range=(1,2),lowercase=True,sublinear_tf=True,min_df=2,max_df=.98,max_features=80000,dtype=np.float32)
