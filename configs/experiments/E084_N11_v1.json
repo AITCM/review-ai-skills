@@ -1,0 +1,73 @@
+{
+  "experiment_id": "E084_N11_v1",
+  "study_id": "CASE-EVID-001",
+  "sop_version": "SOP-1.0",
+  "status": "train_internal_blind",
+  "hypothesis": "Within the same fixed N8 top-100 candidate pool, query-conditioned marginal reasoning-set utility learning using only deployable query-to-history and redundancy features can beat the frozen-style N8 RRF ranking at Top-10.",
+  "data": {
+    "dataset_revision": "469a5365bc534b5b2b9cfbc52b2ef2a10f43a339",
+    "query_split": "train_internal_meta",
+    "group_key": "pmcid",
+    "grouped_split": true,
+    "query_fields": [
+      "pmcid",
+      "case_prompt"
+    ],
+    "historical_index_fields": [
+      "pmcid",
+      "case_prompt",
+      "diagnostic_reasoning_masked"
+    ],
+    "test_access": false,
+    "old_external_access": false,
+    "prior_e083_outer_group_excluded": true,
+    "outer_holdout_pmcid_groups": 360,
+    "train_fit_teacher_queries": 600
+  },
+  "method": {
+    "baseline": "N8-RRF-LEX-XMOD-STRONGMASK",
+    "name": "N11 query-conditioned marginal reasoning-set utility selector",
+    "candidate_budget": 100,
+    "random_seed": 20261009,
+    "primary_variant": "N11_SET_HGB",
+    "secondary_variants": [
+      "N8_RRF",
+      "ORACLE_POSTHOC_REFERENCE_ONLY"
+    ],
+    "rrf_constant": 60,
+    "hyperparameters": {
+      "loss": "squared_error",
+      "learning_rate": 0.05,
+      "max_iter": 180,
+      "max_leaf_nodes": 15,
+      "min_samples_leaf": 60,
+      "l2_regularization": 2,
+      "early_stopping": false,
+      "train_teacher_queries": 600
+    },
+    "training_label": "train-only greedy reasoning-set marginal SoftF1",
+    "model_input": "query case_prompt; case and masked-reasoning historical library; selected-case similarities; no true query utility"
+  },
+  "evaluation": {
+    "primary": "diagnosis_masked_symmetric_reasoning_set_softF1@10",
+    "predeclared_primary_comparison": "N11_SET_HGB vs N8_RRF on 360 disjoint E084 outer meta PMCID groups",
+    "blind_ranking_lock": true,
+    "independent": [
+      "char_ngram_softF1@10"
+    ],
+    "secondary": [
+      "softF1@1",
+      "softF1@3",
+      "query_diagnosis_exposure_audit",
+      "oracle_gap_fraction"
+    ],
+    "confidence": "cluster_PMCID_bootstrap_3000"
+  },
+  "governance": {
+    "n8_frozen": true,
+    "t001_untouched": true,
+    "medr_not_used_for_tuning": true,
+    "selection_scope": "exploratory train-internal holdout only, not independent external",
+    "decision_rule": "Both primary and char delta positive with lower CI >0 supports candidature for new external cohort; otherwise archive and do not re-fit same group."
+  }
+}
