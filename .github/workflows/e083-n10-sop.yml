@@ -1,0 +1,56 @@
+name: E083 N10 Reasoning Point Retrieval SOP v1
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e083-n10-sop.yml']
+permissions:
+  contents: read
+jobs:
+  develop-and-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 95
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: data-tools/medcase-download-20261003
+      - name: Install pinned dependencies
+        run: python3 -m pip install --quiet numpy==2.2.6 pandas==2.2.3 scipy==1.15.3 scikit-learn==1.6.1 pyarrow==20.0.0
+      - name: SOP policy static gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/case_evid_policy_gate.py --policy configs/case_evid_policy_v1.json --experiment configs/experiments/E083_N10_v1.json --source tools/e083_n10_pointwise.py 2>&1 | tee E083_GATE.log
+          python3 -m unittest discover -s tests -p 'test_case_evid_policy_gate.py' -v 2>&1 | tee E083_GATE_TESTS.log
+      - name: Phase 1 blinded train-internal rankings
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u tools/e083_n10_pointwise.py --stage rank 2>&1 | tee E083_RANK.log
+          test -s e083-n10-output/E083_N10_RANKING_LOCK.json
+          test -s e083-n10-output/E083_N10_BLIND_RANKINGS.jsonl
+      - name: Phase 2 evaluate after ranking lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u tools/e083_n10_pointwise.py --stage eval 2>&1 | tee E083_EVAL.log
+          python3 tools/e083_n10_decision.py 2>&1 | tee E083_DECISION.log
+      - name: Bundle SOP and experiment artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p e083-n10-output/research_sop
+          cp docs/CASE_EVID_RESEARCH_SOP_v1.md configs/case_evid_policy_v1.json configs/experiments/E083_N10_v1.json e083-n10-output/research_sop/
+          sha256sum tools/e083_n10_pointwise.py tools/case_evid_policy_gate.py > e083-n10-output/SOURCE_SHA256.txt
+          git rev-parse HEAD > e083-n10-output/GIT_COMMIT_SHA.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: E083-N10-SOP-Governed-Experiment
+          path: |
+            e083-n10-output/
+            E083_GATE.log
+            E083_GATE_TESTS.log
+            E083_RANK.log
+            E083_EVAL.log
+            E083_DECISION.log
+          retention-days: 60
