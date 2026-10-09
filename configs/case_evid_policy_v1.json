@@ -1,0 +1,81 @@
+{
+  "schema_version": "1.0.0",
+  "study_id": "CASE-EVID-001",
+  "sop_version": "SOP-1.0",
+  "effective_date": "2026-10-09",
+  "dataset": {
+    "name": "zou-lab/MedCaseReasoning",
+    "revision": "469a5365bc534b5b2b9cfbc52b2ef2a10f43a339",
+    "canonical_splits": {
+      "train": 13092,
+      "validation": 500,
+      "test": 897
+    },
+    "source_group_key": "pmcid"
+  },
+  "governance": {
+    "frozen_n8_method": "N8-RRF-LEX-XMOD-STRONGMASK",
+    "frozen_n8_config_sha256": "9f660f9b349a79f6a6c42c967fbaf4581930f1a4496345ced83d49dde1b8385c",
+    "frozen_t001_test": "DO_NOT_USE_FOR_MODEL_SELECTION",
+    "reused_validation": "DEVELOPMENT_ONLY_NO_CONFIRMATORY_CLAIM",
+    "reused_medrbench_external": "DO_NOT_USE_FOR_NEW_MODEL_SELECTION",
+    "require_train_only_new_algorithm_development": true,
+    "require_locked_query_only_predictions_before_outcome_eval": true,
+    "require_pmcid_group_separation": true,
+    "forbid_query_diagnostic_reasoning_in_retrieval": true,
+    "allow_historical_reasoning_with_diagnosis_mask": true,
+    "never_promote_without_new_independent_external": true
+  },
+  "metrics": {
+    "primary": "diagnosis_masked_symmetric_reasoning_set_softF1@10",
+    "secondary": [
+      "softF1@1",
+      "softF1@3",
+      "exact_label_retrieval",
+      "char_ngram_softF1@10",
+      "near_duplicate_sensitivity",
+      "query_dx_exposure_sensitivity"
+    ],
+    "status_terms": [
+      "exploratory",
+      "train_internal_blind",
+      "validation_reused",
+      "frozen",
+      "independent_external",
+      "clinical_pending",
+      "invalid_leakage"
+    ],
+    "sample_unit": "pmcid",
+    "confidence": "paired_cluster_bootstrap_95pct",
+    "bootstrap_seed": 20261009,
+    "bootstrap_replicates": 3000
+  },
+  "decision": {
+    "run_budget": "must_predeclare",
+    "baseline": "frozen_N8_RRF",
+    "min_positive_gates": [
+      "primary_delta_positive",
+      "independent_char_delta_positive",
+      "no_gold_in_ranker",
+      "no_test_access"
+    ],
+    "no_multiplicity_claim_from_exploration": true,
+    "external_requirements": "new_untouched_source_grouped_cohort_only",
+    "failure_rule": "archive_negative_or_null_results_and_do_not_tune_against_external_outcome"
+  },
+  "artifact_contract": {
+    "required": [
+      "manifest.json",
+      "rankings.jsonl",
+      "ranking_lock.json",
+      "per_query.csv",
+      "summary.json",
+      "report.md",
+      "source_sha256.txt",
+      "run.log"
+    ],
+    "directory_template": "experiments/{experiment_id}/{run_id}/",
+    "persistent": "GitHub code + Google Drive immutable output bundle",
+    "publication_status": "confirmatory claims require external preregistration and independent review"
+  }
+}
