@@ -1,0 +1,54 @@
+name: E084 N11 N8-Conditioned Set Utility SOP
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e084-n11-sop.yml']
+permissions:
+  contents: read
+jobs:
+  blind-develop-and-evaluate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: data-tools/medcase-download-20261003
+      - name: Pin Python stack
+        run: python3 -m pip install --quiet numpy==2.2.6 pandas==2.2.3 scipy==1.15.3 scikit-learn==1.6.1 pyarrow==20.0.0
+      - name: SOP experiment gate and regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/case_evid_policy_gate.py --policy configs/case_evid_policy_v1.json --experiment configs/experiments/E084_N11_v1.json --source tools/e084_n11_set_policy.py 2>&1 | tee E084_GATE.log
+          python3 -m unittest discover -s tests -p 'test_case_evid_policy_gate.py' -v 2>&1 | tee E084_TESTS.log
+      - name: Rank blind with train-internal teacher and new disjoint PMCID holdout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u tools/e084_n11_set_policy.py --stage rank 2>&1 | tee E084_RANK.log
+          test -s e084-n11-output/E084_N11_RANKING_LOCK.json
+      - name: Evaluate only after ranking lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u tools/e084_n11_set_policy.py --stage eval 2>&1 | tee E084_EVAL.log
+          test -s e084-n11-output/E084_N11_DECISION.json
+      - name: Record code, configuration and SOP hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p e084-n11-output/governance
+          cp docs/CASE_EVID_RESEARCH_SOP_v1.md configs/case_evid_policy_v1.json configs/experiments/E084_N11_v1.json e084-n11-output/governance/
+          sha256sum tools/e084_n11_set_policy.py tools/e083_n10_pointwise.py > e084-n11-output/SOURCE_SHA256.txt
+          git rev-parse HEAD > e084-n11-output/GIT_COMMIT.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: E084-N11-Set-Policy-SOP-V1
+          path: |
+            e084-n11-output/
+            E084_GATE.log
+            E084_TESTS.log
+            E084_RANK.log
+            E084_EVAL.log
+          retention-days: 60
