@@ -1,0 +1,30 @@
+name: CASE EVID SOP Registry Gate
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths:
+      - '.github/workflows/case-evid-sop-registry.yml'
+      - 'configs/experiments/**'
+      - 'configs/case_evid_policy_v1.json'
+      - 'tools/case_evid_*'
+      - 'tools/e08*'
+      - 'tests/test_case_evid_policy_gate.py'
+      - 'docs/CASE_EVID_RESEARCH_SOP_v1.md'
+  pull_request:
+    paths:
+      - 'configs/experiments/**'
+      - 'configs/case_evid_policy_v1.json'
+      - 'tools/case_evid_*'
+      - 'tools/e08*'
+permissions:
+  contents: read
+jobs:
+  sop-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Check all registered experiment manifests
+        run: python3 tools/case_evid_check_all.py
+      - name: Gate regression tests
+        run: python3 -m unittest discover -s tests -p 'test_case_evid_policy_gate.py' -v
