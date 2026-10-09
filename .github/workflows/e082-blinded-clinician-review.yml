@@ -1,0 +1,49 @@
+name: E082 Clinician Blinded Evidence Package
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/e082-blinded-clinician-review.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  e082:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: data-tools/medcase-download-20261003
+      - name: Install dependencies
+        run: python3 -m pip install --quiet pandas==2.2.3 pyarrow==20.0.0
+      - name: Fetch original immutable E081 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/AITCM/review-ai-skills/actions/artifacts/11488327277/zip \
+            -o E081_SOURCE_LOCKED.zip
+          sha256sum E081_SOURCE_LOCKED.zip
+      - name: Build blinded reviewer and separate allocation packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u tools/e082_blinded_clinician_package.py 2>&1 | tee E082_BUILD.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: E082-REVIEWER-BLINDED-ONLY
+          path: |
+            e082-clinical-review/E082_REVIEWER_BLINDED_ONLY.zip
+            E082_BUILD.log
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: E082-ANALYST-ALLOCATION-PRIVATE
+          path: e082-clinical-review/E082_ANALYST_KEY_PRIVATE.zip
+          if-no-files-found: error
+          retention-days: 30
