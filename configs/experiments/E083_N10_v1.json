@@ -1,0 +1,68 @@
+{
+  "experiment_id": "E083_N10_v1",
+  "study_id": "CASE-EVID-001",
+  "sop_version": "SOP-1.0",
+  "status": "train_internal_blind",
+  "hypothesis": "Query-to-reasoning-point sparse alignment can increase the reasoning utility of a case-evidence set beyond the frozen N8 document-level cross-modal fusion, without privileged query outcomes.",
+  "data": {
+    "dataset_revision": "469a5365bc534b5b2b9cfbc52b2ef2a10f43a339",
+    "query_split": "train_internal_meta",
+    "group_key": "pmcid",
+    "grouped_split": true,
+    "query_fields": [
+      "pmcid",
+      "case_prompt"
+    ],
+    "historical_index_fields": [
+      "pmcid",
+      "case_prompt",
+      "diagnostic_reasoning_masked"
+    ],
+    "test_access": false,
+    "old_external_access": false,
+    "source_overlap_policy": "exclude_matching_pmcid"
+  },
+  "method": {
+    "baseline": "N8-RRF-LEX-XMOD-STRONGMASK",
+    "name": "N10 case-to-reasoning-point retrieval",
+    "candidate_budget": 50,
+    "random_seed": 20261009,
+    "primary_variant": "N10_RRF_LEX_XMOD_POINT",
+    "secondary_variants": [
+      "N8_RRF_LEX_XMOD",
+      "POINT_ONLY",
+      "RRF_XMOD_POINT",
+      "LEX"
+    ],
+    "rrf_constant": 60,
+    "route_parameters": {
+      "lexical_max_features": 100000,
+      "xmod_max_features": 140000,
+      "point_score": "maximum_query_point_TFIDF_cosine_per_historical_case"
+    },
+    "model_fit": "reference_train_only"
+  },
+  "evaluation": {
+    "primary": "diagnosis_masked_symmetric_reasoning_set_softF1@10",
+    "predeclared_primary_comparison": "N10_RRF_LEX_XMOD_POINT versus N8_RRF_LEX_XMOD",
+    "blind_ranking_lock": true,
+    "independent": [
+      "char_ngram_softF1@10"
+    ],
+    "secondary": [
+      "softF1@1",
+      "softF1@3",
+      "exact_label_retrieval",
+      "query_diagnosis_exposure_audit"
+    ],
+    "confidence": "cluster_PMCID_bootstrap_3000",
+    "deployment_inputs": "new query case_prompt only, historical masked reasoning"
+  },
+  "governance": {
+    "n8_frozen": true,
+    "t001_untouched": true,
+    "medr_not_used_for_tuning": true,
+    "selection_scope": "train_meta exploratory, not new independent confirmation",
+    "decision_rule": "primary delta >0 AND independent char delta >0, with confidence intervals and harms reported; no confirmation claim on reused validation"
+  }
+}
