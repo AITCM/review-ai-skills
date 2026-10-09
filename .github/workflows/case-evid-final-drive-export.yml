@@ -74,36 +74,36 @@ jobs:
             "-r requirements-core.txt\ntorch==2.7.1\nsentence-transformers==5.1.1\nhuggingface_hub==0.35.1\n"
           )
           (export/"execution"/"RUN_WITHOUT_GITHUB.md").write_text("""# CASE-EVID-001: Google Drive-first execution guide
-
-This ZIP is the **self-contained repository source snapshot**; it is not the case data or a trained model release. The original research branch remains as read-only historical backup.
-
-## Directory
-- source/tools: E020-E084 scripts, data checks, evaluator code and SOP checker
-- source/configs: immutable CASE-EVID SOP/experiment registrations
-- source/docs: SOP, method freeze, ledger and limitations
-- source/tests: synthetic SOP regression tests
-- source/.github/workflows: archival workflows; Google Drive usage does not require GitHub Actions
-- execution: pinned Python environment lists, this guide
-- MANIFEST.json + SHA256SUMS.txt: integrity and Git commit provenance
-
-## Reproduce safely on your own PC, Jupyter or cloud VM
-1. Download and extract this ZIP. Do not email/archive the private clinical-review allocation key together with reviewer packages.
-2. Use Python 3.11+ and install the optional pinned dependencies:
-   python -m pip install -r execution/requirements-core.txt
-3. Run the offline static SOP gate (does not read clinical data):
-   python source/tools/case_evid_policy_gate.py --policy source/configs/case_evid_policy_v1.json --experiment source/configs/experiments/E083_N10_v1.json --source source/tools/e083_n10_pointwise.py
-4. Run regression checks:
-   cd source && python -m unittest discover -s tests -p 'test_case_evid_policy_gate.py' -v
-5. Data-dependent original experiments were authored relative to their GitHub repository root and use pinned Hugging Face revision URLs. They are **not a guaranteed no-internet, one-click runner**. For reproducible execution with local raw data, first stage the Parquet files from the project's 01_Data_Raw folder and adapt input base URLs in a new experiment revision; do not overwrite archived original source.
-6. Always rank with **query-only** inputs and lock SHA before loading gold reasoning. The reused original validation, T001 test, and old E081 external cohorts must not select new model variants.
-7. Output should be written under separate CASE-EVID project experiment folders with numbered run ID, source hash, manifest and summary. Save generated results to Drive after validation.
-
-## Drive project root
-https://drive.google.com/drive/folders/16-pVpnvOYV9ekAMzowRM6vROpM64AkHh
-
-### Operational boundary
-Google Drive stores files. Python executes on your connected computer, Jupyter runtime or suitable cloud machine, not on Drive. This kit deliberately does not contain restricted credentials, unpublished patient records, individual expert ratings, or the blinded allocation key.
-""")
+          
+          This ZIP is the **self-contained repository source snapshot**; it is not the case data or a trained model release. The original research branch remains as read-only historical backup.
+          
+          ## Directory
+          - source/tools: E020-E084 scripts, data checks, evaluator code and SOP checker
+          - source/configs: immutable CASE-EVID SOP/experiment registrations
+          - source/docs: SOP, method freeze, ledger and limitations
+          - source/tests: synthetic SOP regression tests
+          - source/.github/workflows: archival workflows; Google Drive usage does not require GitHub Actions
+          - execution: pinned Python environment lists, this guide
+          - MANIFEST.json + SHA256SUMS.txt: integrity and Git commit provenance
+          
+          ## Reproduce safely on your own PC, Jupyter or cloud VM
+          1. Download and extract this ZIP. Do not email/archive the private clinical-review allocation key together with reviewer packages.
+          2. Use Python 3.11+ and install the optional pinned dependencies:
+             python -m pip install -r execution/requirements-core.txt
+          3. Run the offline static SOP gate (does not read clinical data):
+             python source/tools/case_evid_policy_gate.py --policy source/configs/case_evid_policy_v1.json --experiment source/configs/experiments/E083_N10_v1.json --source source/tools/e083_n10_pointwise.py
+          4. Run regression checks:
+             cd source && python -m unittest discover -s tests -p 'test_case_evid_policy_gate.py' -v
+          5. Data-dependent original experiments were authored relative to their GitHub repository root and use pinned Hugging Face revision URLs. They are **not a guaranteed no-internet, one-click runner**. For reproducible execution with local raw data, first stage the Parquet files from the project's 01_Data_Raw folder and adapt input base URLs in a new experiment revision; do not overwrite archived original source.
+          6. Always rank with **query-only** inputs and lock SHA before loading gold reasoning. The reused original validation, T001 test, and old E081 external cohorts must not select new model variants.
+          7. Output should be written under separate CASE-EVID project experiment folders with numbered run ID, source hash, manifest and summary. Save generated results to Drive after validation.
+          
+          ## Drive project root
+          https://drive.google.com/drive/folders/16-pVpnvOYV9ekAMzowRM6vROpM64AkHh
+          
+          ### Operational boundary
+          Google Drive stores files. Python executes on your connected computer, Jupyter runtime or suitable cloud machine, not on Drive. This kit deliberately does not contain restricted credentials, unpublished patient records, individual expert ratings, or the blinded allocation key.
+          """)
           notes={
             "study":"CASE-EVID-001","snapshot_type":"CURATED_CASE_EVID_SOURCE_ONLY",
             "git_repository":"AITCM/review-ai-skills",
