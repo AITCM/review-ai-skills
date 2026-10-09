@@ -16,7 +16,7 @@ for manifest in files:
     exp=json.loads(manifest.read_text())
     expid=exp.get("experiment_id","")
     stem=expid.rsplit("_v",1)[0].lower()
-    matches=sorted((root/"tools").glob(stem+"_*.py"))
+    matches=sorted(p for p in (root/"tools").glob(stem+"_*.py") if not p.name.endswith(("_decision.py","_report.py","_eval.py")))
     if len(matches)!=1:
         failures.append(f"{manifest.name}: expected one source file with prefix {stem}_, found {len(matches)}")
         continue
