@@ -1,0 +1,144 @@
+name: CASE EVID Final Source Export to Drive
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/case-evid-final-drive-export.yml']
+permissions:
+  contents: read
+jobs:
+  export-snapshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: data-tools/medcase-download-20261003
+      - name: Package ONLY CASE-EVID-001 source plus SOP; no raw cases or secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import ast,datetime,hashlib,json,os,pathlib,shutil,subprocess
+          root=pathlib.Path.cwd()
+          export=pathlib.Path("case-evid-001-drive-source")
+          patterns=[
+            "tools/medcase_*.py","tools/case_evid_*.py",
+            "tools/e020_*.py","tools/e021_*.py","tools/e031_*.py","tools/e032_*.py",
+            "tools/e040_*.py","tools/e050_*.py","tools/e060_*.py","tools/e070_*.py",
+            "tools/e080_*.py","tools/e081_*.py","tools/e082_*.py",
+            "tools/e083_*.py","tools/e084_*.py",
+            "docs/CASE_EVID_*.md","docs/E081_N8_METHOD_FREEZE.md",
+            "configs/case_evid_*.json","configs/experiments/E08*_N*_v*.json",
+            "tests/test_case_evid_*.py",
+            ".github/workflows/medcase-*.yml",".github/workflows/e020-*.yml",
+            ".github/workflows/e021-*.yml",".github/workflows/e080-*.yml",
+            ".github/workflows/e081-*.yml",".github/workflows/e082-*.yml",
+            ".github/workflows/e083-*.yml",".github/workflows/e084-*.yml",
+            ".github/workflows/case-evid-*.yml"
+          ]
+          files=set()
+          for pattern in patterns:
+            for path in root.glob(pattern):
+              if path.is_file(): files.add(path)
+          relative=sorted(str(p.relative_to(root)) for p in files)
+          required=[
+            "docs/CASE_EVID_RESEARCH_SOP_v1.md",
+            "docs/CASE_EVID_ALGORITHM_DECISION_LEDGER_20261009.md",
+            "configs/case_evid_policy_v1.json",
+            "configs/experiments/E083_N10_v1.json",
+            "configs/experiments/E084_N11_v1.json",
+            "tools/e081_n8_rank.py",
+            "tools/e081_n8_eval.py",
+            "tools/e083_n10_pointwise.py",
+            "tools/e084_n11_set_policy.py",
+            "tools/case_evid_policy_gate.py",
+          ]
+          for item in required:
+            if item not in relative:raise RuntimeError("Required source missing: "+item)
+          if len(relative)<50:raise RuntimeError(f"Unexpectedly small source export: {len(relative)}")
+          for rel in relative:
+            dest=export/"source"/rel
+            dest.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copy2(root/rel,dest)
+          commit=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
+          parse_issues=[]
+          for rel in relative:
+            if rel.endswith(".py"):
+              try:ast.parse((root/rel).read_text(encoding="utf-8"))
+              except Exception as e:parse_issues.append({"path":rel,"issue":str(e)})
+          (export/"execution").mkdir(parents=True,exist_ok=True)
+          (export/"execution"/"requirements-core.txt").write_text(
+            "numpy==2.2.6\npandas==2.2.3\nscipy==1.15.3\nscikit-learn==1.6.1\npyarrow==20.0.0\n"
+          )
+          (export/"execution"/"requirements-dense-extras.txt").write_text(
+            "-r requirements-core.txt\ntorch==2.7.1\nsentence-transformers==5.1.1\nhuggingface_hub==0.35.1\n"
+          )
+          (export/"execution"/"RUN_WITHOUT_GITHUB.md").write_text("""# CASE-EVID-001: Google Drive-first execution guide
+
+This ZIP is the **self-contained repository source snapshot**; it is not the case data or a trained model release. The original research branch remains as read-only historical backup.
+
+## Directory
+- source/tools: E020-E084 scripts, data checks, evaluator code and SOP checker
+- source/configs: immutable CASE-EVID SOP/experiment registrations
+- source/docs: SOP, method freeze, ledger and limitations
+- source/tests: synthetic SOP regression tests
+- source/.github/workflows: archival workflows; Google Drive usage does not require GitHub Actions
+- execution: pinned Python environment lists, this guide
+- MANIFEST.json + SHA256SUMS.txt: integrity and Git commit provenance
+
+## Reproduce safely on your own PC, Jupyter or cloud VM
+1. Download and extract this ZIP. Do not email/archive the private clinical-review allocation key together with reviewer packages.
+2. Use Python 3.11+ and install the optional pinned dependencies:
+   python -m pip install -r execution/requirements-core.txt
+3. Run the offline static SOP gate (does not read clinical data):
+   python source/tools/case_evid_policy_gate.py --policy source/configs/case_evid_policy_v1.json --experiment source/configs/experiments/E083_N10_v1.json --source source/tools/e083_n10_pointwise.py
+4. Run regression checks:
+   cd source && python -m unittest discover -s tests -p 'test_case_evid_policy_gate.py' -v
+5. Data-dependent original experiments were authored relative to their GitHub repository root and use pinned Hugging Face revision URLs. They are **not a guaranteed no-internet, one-click runner**. For reproducible execution with local raw data, first stage the Parquet files from the project's 01_Data_Raw folder and adapt input base URLs in a new experiment revision; do not overwrite archived original source.
+6. Always rank with **query-only** inputs and lock SHA before loading gold reasoning. The reused original validation, T001 test, and old E081 external cohorts must not select new model variants.
+7. Output should be written under separate CASE-EVID project experiment folders with numbered run ID, source hash, manifest and summary. Save generated results to Drive after validation.
+
+## Drive project root
+https://drive.google.com/drive/folders/16-pVpnvOYV9ekAMzowRM6vROpM64AkHh
+
+### Operational boundary
+Google Drive stores files. Python executes on your connected computer, Jupyter runtime or suitable cloud machine, not on Drive. This kit deliberately does not contain restricted credentials, unpublished patient records, individual expert ratings, or the blinded allocation key.
+""")
+          notes={
+            "study":"CASE-EVID-001","snapshot_type":"CURATED_CASE_EVID_SOURCE_ONLY",
+            "git_repository":"AITCM/review-ai-skills",
+            "source_branch":"data-tools/medcase-download-20261003",
+            "commit_sha":commit,
+            "archive_generated_at_utc":datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "source_file_count":len(relative),
+            "source_files":relative,
+            "dataset_revision":"469a5365bc534b5b2b9cfbc52b2ef2a10f43a339",
+            "source_syntax_issues":parse_issues,
+            "excluded":"All non CASE-EVID source, raw patient/case datasets, result binaries, credentials, private clinician allocation key",
+            "verification":"SHA256SUMS.txt covers every materialized source/execution file; no source reformatting"
+          }
+          (export/"MANIFEST.json").write_text(json.dumps(notes,indent=2)+"\n")
+          (export/"SHA256SUMS.txt").write_text("".join(
+              f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.relative_to(export)}\n"
+              for p in sorted(export.rglob("*")) if p.is_file() and p.name!="SHA256SUMS.txt"
+          ))
+          print("SOURCE_EXPORT_OK",json.dumps({"file_count":len(relative),"syntax_warnings":len(parse_issues),"git_sha":commit},sort_keys=True))
+          PY
+      - name: Verify archive manifest and source hashing
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd case-evid-001-drive-source
+          sha256sum -c SHA256SUMS.txt
+          python3 - <<'PY'
+          import json
+          x=json.load(open("MANIFEST.json"))
+          assert x["source_file_count"]>=50
+          print("VERIFY_PASSED", x["source_file_count"])
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: CASE-EVID-001-SOURCE-SNAPSHOT-DRIVE
+          path: case-evid-001-drive-source/
+          retention-days: 14
+          if-no-files-found: error
