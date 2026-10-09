@@ -1,0 +1,35 @@
+name: CASE EVID SOP v1 Portable Package
+on:
+  push:
+    branches: ['data-tools/medcase-download-20261003']
+    paths: ['.github/workflows/case-evid-sop-pack-v1.yml']
+permissions:
+  contents: read
+jobs:
+  archive-sop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: data-tools/medcase-download-20261003
+      - name: Gate synthetic tests
+        run: python3 -m unittest discover -s tests -p 'test_case_evid_policy_gate.py' -v
+      - name: Verify current registered experiment
+        run: python3 tools/case_evid_policy_gate.py --policy configs/case_evid_policy_v1.json --experiment configs/experiments/E083_N10_v1.json --source tools/e083_n10_pointwise.py
+      - name: Collect published SOP package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p sop-v1/code sop-v1/configs sop-v1/docs sop-v1/tests
+          cp docs/CASE_EVID_RESEARCH_SOP_v1.md docs/CASE_EVID_SOP_CHANGELOG.md sop-v1/docs/
+          cp configs/case_evid_policy_v1.json configs/experiments/E083_N10_v1.json sop-v1/configs/
+          cp tools/case_evid_policy_gate.py sop-v1/code/
+          cp tests/test_case_evid_policy_gate.py sop-v1/tests/
+          git rev-parse HEAD > sop-v1/GIT_COMMIT.txt
+          (cd sop-v1 && find . -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: CASE-EVID-001-SOP-v1-Portable
+          path: sop-v1/
+          retention-days: 90
