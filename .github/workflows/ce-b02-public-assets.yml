@@ -1,0 +1,94 @@
+name: B02 Public Model Assets Only
+on:
+  push:
+    branches: ['asset-fetch/ce-b02-20261011']
+    paths: ['.github/workflows/ce-b02-public-assets.yml']
+permissions:
+  contents: read
+jobs:
+  acquire:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Download and verify public model files only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,urllib.request,hashlib,json,time
+          root=pathlib.Path('public_assets'); root.mkdir()
+          model=root/'model'; model.mkdir()
+          repo='cross-encoder/ms-marco-MiniLM-L6-v2'
+          rev='233902d25c440f23af6f7d6e94d2946bac0bee0a'
+          names=['config.json','tokenizer.json','tokenizer_config.json','special_tokens_map.json','vocab.txt','README.md','model.safetensors']
+          rows=[]
+          for name in names:
+              url=f'https://huggingface.co/{repo}/resolve/{rev}/{name}?download=true'
+              path=model/name
+              for attempt in range(3):
+                  try:
+                      req=urllib.request.Request(url,headers={'User-Agent':'CASE-EVID-public-model-acquisition/1.0'})
+                      with urllib.request.urlopen(req,timeout=120) as resp,path.open('wb') as out:
+                          while True:
+                              chunk=resp.read(1048576)
+                              if not chunk: break
+                              out.write(chunk)
+                      break
+                  except Exception:
+                      if attempt==2: raise
+                      time.sleep(2)
+              data=path.read_bytes(); h=hashlib.sha256(data).hexdigest()
+              if name=='model.safetensors':
+                  assert h=='821d1aa69520101d6e0737f78a042ae25b19e5cb9160701909d10434f4aeb0ae',h
+                  assert len(data)>90000000
+              rows.append({'name':name,'url':url,'size':len(data),'sha256':h})
+              print('VERIFIED',name,len(data),h,flush=True)
+          weight=model/'model.safetensors'; data=weight.read_bytes(); shardrows=[]
+          for i,start in enumerate(range(0,len(data),24*1024*1024)):
+              d=root/f'part{i}'; d.mkdir(); p=d/f'model.safetensors.part{i}'
+              p.write_bytes(data[start:start+24*1024*1024])
+              shardrows.append({'path':str(p.relative_to(root)),'size':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()})
+          weight.unlink()
+          (root/'ASSET_MANIFEST.json').write_text(json.dumps({'model_id':repo,'revision':rev,'files':rows,'shards':shardrows,'clinical_data_uploaded':False,'model_training_performed':False},indent=2))
+          PY
+      - name: Download compatible Python wheels for offline installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p public_assets/wheels
+          python3 -m pip download --no-deps --only-binary=:all: --python-version 313 --implementation cp --abi cp313 --abi abi3 --platform manylinux2014_x86_64 --platform manylinux_2_17_x86_64 --platform manylinux_2_28_x86_64 --dest public_assets/wheels transformers==4.57.1 tokenizers==0.22.1 huggingface-hub==0.35.3
+          (cd public_assets && find model wheels -type f -print0 | sort -z | xargs -0 sha256sum > OTHER_SHA256SUMS.txt)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: B02-PUBLIC-ASSETS-METADATA-WHEELS
+          path: |
+            public_assets/model/
+            public_assets/wheels/
+            public_assets/ASSET_MANIFEST.json
+            public_assets/OTHER_SHA256SUMS.txt
+          retention-days: 7
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: B02-PUBLIC-MODEL-PART0
+          path: public_assets/part0/
+          retention-days: 7
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: B02-PUBLIC-MODEL-PART1
+          path: public_assets/part1/
+          retention-days: 7
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: B02-PUBLIC-MODEL-PART2
+          path: public_assets/part2/
+          retention-days: 7
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: B02-PUBLIC-MODEL-PART3
+          path: public_assets/part3/
+          retention-days: 7
+          if-no-files-found: error
